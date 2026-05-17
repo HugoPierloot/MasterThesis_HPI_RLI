@@ -1,0 +1,598 @@
+
+============================================================
+  DataFrame: Companies
+============================================================
+
+Global descriptive statistics:
+
+  Descriptive statistics of 'Company Name':
+count      59
+unique     59
+top       AEB
+freq        1
+
+  Descriptive statistics of 'Company Country':
+count      59
+unique     15
+top       USA
+freq       22
+
+  Descriptive statistics of 'Ownership':
+count        59
+unique        2
+top       State
+freq         33
+
+Dataframe info:
+<class 'pandas.DataFrame'>
+RangeIndex: 59 entries, 0 to 58
+Data columns (total 3 columns):
+ #   Column           Non-Null Count  Dtype
+---  ------           --------------  -----
+ 0   Company Name     59 non-null     str  
+ 1   Company Country  59 non-null     str  
+ 2   Ownership        59 non-null     str  
+dtypes: str(3)
+memory usage: 1.5 KB
+
+============================================================
+  DataFrame: Configs
+============================================================
+
+Global descriptive statistics:
+
+  Descriptive statistics of 'Family Id':
+count    480.000000
+mean     139.027083
+std       83.658300
+min        3.000000
+25%       66.000000
+50%      133.000000
+75%      222.000000
+max      281.000000
+
+  Descriptive statistics of 'No':
+count    480.000000
+mean       3.110417
+std        3.350489
+min        1.000000
+25%        1.000000
+50%        2.000000
+75%        4.000000
+max       22.000000
+
+  Descriptive statistics of 'Config':
+count                         480
+unique                        480
+top       Falcon 9 Block 1 (v1.0)
+freq                            1
+
+  Descriptive statistics of 'Status':
+count         480
+unique          3
+top       Retired
+freq          323
+
+  Descriptive statistics of 'Price':
+count                127
+unique                72
+top       $450.0 million
+freq                   6
+
+  Descriptive statistics of 'Liftoff Thrust':
+count          353
+unique         192
+top       3,511 kN
+freq             9
+
+  Descriptive statistics of 'Payload to LEO':
+count           360
+unique          217
+top       19,000 kg
+freq             11
+
+  Descriptive statistics of 'Payload to GTO':
+count      287
+unique     119
+top       0 kg
+freq        92
+
+  Descriptive statistics of 'Stages':
+count    476.000000
+mean       2.754202
+std        0.878086
+min        0.000000
+25%        2.000000
+50%        3.000000
+75%        3.000000
+max        5.000000
+
+  Descriptive statistics of 'Strap-ons':
+count    463.000000
+mean       1.997840
+std        2.737821
+min        0.000000
+25%        0.000000
+50%        0.000000
+75%        4.000000
+max        9.000000
+
+  Descriptive statistics of 'Rocket Height':
+count        388
+unique       176
+top       38.1 m
+freq          11
+
+  Descriptive statistics of 'Fairing Diameter':
+count       304
+unique       66
+top       3.0 m
+freq         30
+
+  Descriptive statistics of 'Fairing Height':
+count       253
+unique      107
+top       8.9 m
+freq         12
+
+Dataframe info:
+<class 'pandas.DataFrame'>
+RangeIndex: 480 entries, 0 to 479
+Data columns (total 13 columns):
+ #   Column            Non-Null Count  Dtype  
+---  ------            --------------  -----  
+ 0   Family Id         480 non-null    float64
+ 1   No                480 non-null    float64
+ 2   Config            480 non-null    str    
+ 3   Status            480 non-null    str    
+ 4   Price             127 non-null    str    
+ 5   Liftoff Thrust    353 non-null    str    
+ 6   Payload to LEO    360 non-null    str    
+ 7   Payload to GTO    287 non-null    str    
+ 8   Stages            476 non-null    float64
+ 9   Strap-ons         463 non-null    float64
+ 10  Rocket Height     388 non-null    str    
+ 11  Fairing Diameter  304 non-null    str    
+ 12  Fairing Height    253 non-null    str    
+dtypes: float64(4), str(9)
+memory usage: 48.9 KB
+
+============================================================
+  DataFrame: Families
+============================================================
+
+Global descriptive statistics:
+
+  Descriptive statistics of 'Family':
+count          205
+unique         205
+top       Falcon 9
+freq             1
+
+  Descriptive statistics of 'Missions':
+count    179.000000
+mean      34.994413
+std       87.116640
+min        1.000000
+25%        2.500000
+50%        8.000000
+75%       24.500000
+max      859.000000
+
+  Descriptive statistics of 'Successes':
+count    179.000000
+mean      31.905028
+std       83.268126
+min        0.000000
+25%        2.000000
+50%        6.000000
+75%       21.500000
+max      835.000000
+
+  Descriptive statistics of 'Partial Failures':
+count    179.000000
+mean       0.631285
+std        1.517065
+min        0.000000
+25%        0.000000
+50%        0.000000
+75%        1.000000
+max       13.000000
+
+  Descriptive statistics of 'Failures':
+count    179.000000
+mean       2.458101
+std        4.471153
+min        0.000000
+25%        0.000000
+50%        1.000000
+75%        2.000000
+max       33.000000
+
+  Descriptive statistics of 'Success Streak':
+count    179.000000
+mean       8.759777
+std       16.621137
+min        0.000000
+25%        1.000000
+50%        3.000000
+75%        9.000000
+max      109.000000
+
+  Descriptive statistics of 'Success Rate':
+count      179
+unique      77
+top       100%
+freq        50
+
+Dataframe info:
+<class 'pandas.DataFrame'>
+Index: 205 entries, 3 to 281
+Data columns (total 7 columns):
+ #   Column            Non-Null Count  Dtype  
+---  ------            --------------  -----  
+ 0   Family            205 non-null    str    
+ 1   Missions          179 non-null    float64
+ 2   Successes         179 non-null    float64
+ 3   Partial Failures  179 non-null    float64
+ 4   Failures          179 non-null    float64
+ 5   Success Streak    179 non-null    float64
+ 6   Success Rate      179 non-null    str    
+dtypes: float64(5), str(2)
+memory usage: 12.8 KB
+
+============================================================
+  DataFrame: Launches
+============================================================
+
+Global descriptive statistics:
+
+  Descriptive statistics of 'Launch Time':
+count                          6168
+unique                         6167
+top       2019-02-05 21:01:00+00:00
+freq                              2
+
+  Descriptive statistics of 'Launch Status':
+count        6168
+unique          4
+top       Success
+freq         5626
+
+  Descriptive statistics of 'Launch Suborbital':
+count        6168
+unique          1
+top       Orbital
+freq         6168
+
+  Descriptive statistics of 'Rocket Name':
+count        6168
+unique        409
+top       Soyuz U
+freq          778
+
+  Descriptive statistics of 'Rocket Organisation':
+count          6168
+unique           55
+top       RVSN USSR
+freq           2452
+
+  Descriptive statistics of 'Rocket Price':
+count    2272.000000
+mean       79.756567
+std       159.871741
+min         2.500000
+25%        20.000000
+50%        29.750000
+75%        64.680000
+max      3000.000000
+
+  Descriptive statistics of 'Rocket Payload to LEO':
+count      5319.000000
+mean       8137.308705
+std       10061.079369
+min           1.000000
+25%        2850.000000
+50%        6200.000000
+75%        8618.000000
+max      140000.000000
+
+  Descriptive statistics of 'Location':
+count                                          6168
+unique                                          137
+top       Site 1/5, Baikonur Cosmodrome, Kazakhstan
+freq                                            487
+
+  Descriptive statistics of 'Launch Year':
+count    6168.000000
+mean     1988.645104
+std        17.840137
+min      1957.000000
+25%      1974.000000
+50%      1986.000000
+75%      2003.000000
+max      2021.000000
+
+  Descriptive statistics of 'Launch Year Mon':
+count        6168
+unique        767
+top       2021-12
+freq           23
+
+  Descriptive statistics of 'USD/kg to LEO':
+count    2.240000e+03
+mean     8.910098e+04
+std      1.357991e+05
+min      1.410658e+04
+25%      2.915452e+04
+50%      3.095238e+04
+75%      9.722222e+04
+max      1.066667e+06
+
+  Descriptive statistics of '2021 Mult':
+count    6168.000000
+mean        3.625123
+std         2.671304
+min         1.000000
+25%         1.472663
+50%         2.472354
+75%         5.496349
+max         9.643060
+
+  Descriptive statistics of 'USD/kg to LEO CPI Adjusted':
+count    2.240000e+03
+mean     1.548864e+05
+std      2.543781e+05
+min      1.495152e+04
+25%      4.922118e+04
+50%      9.225589e+04
+75%      1.388401e+05
+max      2.211436e+06
+
+  Descriptive statistics of 'Rocket Price CPI Adjusted':
+count    2272.000000
+mean      172.610352
+std       679.592785
+min         2.500000
+25%        36.568151
+50%        56.498317
+75%        89.429043
+max      9410.934132
+
+  Descriptive statistics of 'Dum':
+count    6168.0
+mean        1.0
+std         0.0
+min         1.0
+25%         1.0
+50%         1.0
+75%         1.0
+max         1.0
+
+Dataframe info:
+<class 'pandas.DataFrame'>
+Index: 6168 entries, 3 to 6885
+Data columns (total 15 columns):
+ #   Column                      Non-Null Count  Dtype  
+---  ------                      --------------  -----  
+ 0   Launch Time                 6168 non-null   str    
+ 1   Launch Status               6168 non-null   str    
+ 2   Launch Suborbital           6168 non-null   str    
+ 3   Rocket Name                 6168 non-null   str    
+ 4   Rocket Organisation         6168 non-null   str    
+ 5   Rocket Price                2272 non-null   float64
+ 6   Rocket Payload to LEO       5319 non-null   float64
+ 7   Location                    6168 non-null   str    
+ 8   Launch Year                 6168 non-null   int64  
+ 9   Launch Year Mon             6168 non-null   str    
+ 10  USD/kg to LEO               2240 non-null   float64
+ 11  2021 Mult                   6168 non-null   float64
+ 12  USD/kg to LEO CPI Adjusted  2240 non-null   float64
+ 13  Rocket Price CPI Adjusted   2272 non-null   float64
+ 14  Dum                         6168 non-null   int64  
+dtypes: float64(6), int64(2), str(7)
+memory usage: 771.0 KB
+
+============================================================
+  DataFrame: Locations
+============================================================
+
+Global descriptive statistics:
+
+  Descriptive statistics of 'Orig_Addr':
+count                                                   145
+unique                                                  145
+top       VLS Pad, Alcântara Launch Center, Maranhão, Br...
+freq                                                      1
+
+  Descriptive statistics of 'Country':
+count               143
+unique               19
+top       United States
+freq                 55
+
+  Descriptive statistics of 'Country_Code':
+count     143
+unique     20
+top        US
+freq       55
+
+  Descriptive statistics of 'Lat':
+count    145.000000
+mean      35.093652
+std       18.478361
+min      -39.260441
+25%       28.488672
+50%       34.742027
+75%       45.964585
+max       74.988392
+
+  Descriptive statistics of 'Lon':
+count    145.000000
+mean       3.267359
+std       93.608427
+min     -159.781957
+25%      -80.572824
+50%       40.574841
+75%       63.305243
+max      177.874615
+
+  Descriptive statistics of 'Operator':
+count                           145
+unique                           13
+top       United States Space Force
+freq                             56
+
+  Descriptive statistics of 'Launch Site':
+count                     145
+unique                     43
+top       Baikonur Cosmodrome
+freq                       24
+
+  Descriptive statistics of 'Launch Site Lat':
+count    145.000000
+mean      35.093652
+std       18.478342
+min      -39.208154
+25%       28.489690
+50%       34.698327
+75%       45.964585
+max       74.988392
+
+  Descriptive statistics of 'Launch Site Lon':
+count    145.000000
+mean       3.267359
+std       93.608425
+min     -159.781957
+25%      -80.563003
+50%       40.555239
+75%       63.305243
+max      177.870405
+
+  Descriptive statistics of 'Comb Launch Site':
+count                     145
+unique                     42
+top       Baikonur Cosmodrome
+freq                       24
+
+  Descriptive statistics of 'Comb Launch Site Lat':
+count    145.000000
+mean      35.093652
+std       18.478335
+min      -39.208154
+25%       28.501081
+50%       34.698327
+75%       45.964585
+max       74.988392
+
+  Descriptive statistics of 'Comb Launch Site Lon':
+count    145.000000
+mean       3.267359
+std       93.608425
+min     -159.781957
+25%      -80.567792
+50%       40.555239
+75%       63.305243
+max      177.870405
+
+  Descriptive statistics of 'Operator Lat':
+count    145.000000
+mean      35.093652
+std       16.454398
+min      -39.208154
+25%       31.803279
+50%       31.803279
+75%       52.734534
+max       52.734534
+
+  Descriptive statistics of 'Operator Lon':
+count    145.000000
+mean       3.267359
+std       82.472266
+min      -90.149952
+25%      -90.149952
+50%       57.506323
+75%       57.506323
+max      177.870405
+
+Dataframe info:
+<class 'pandas.DataFrame'>
+RangeIndex: 145 entries, 0 to 144
+Data columns (total 14 columns):
+ #   Column                Non-Null Count  Dtype  
+---  ------                --------------  -----  
+ 0   Orig_Addr             145 non-null    str    
+ 1   Country               143 non-null    str    
+ 2   Country_Code          143 non-null    str    
+ 3   Lat                   145 non-null    float64
+ 4   Lon                   145 non-null    float64
+ 5   Operator              145 non-null    str    
+ 6   Launch Site           145 non-null    str    
+ 7   Launch Site Lat       145 non-null    float64
+ 8   Launch Site Lon       145 non-null    float64
+ 9   Comb Launch Site      145 non-null    str    
+ 10  Comb Launch Site Lat  145 non-null    float64
+ 11  Comb Launch Site Lon  145 non-null    float64
+ 12  Operator Lat          145 non-null    float64
+ 13  Operator Lon          145 non-null    float64
+dtypes: float64(8), str(6)
+memory usage: 16.0 KB
+
+============================================================
+  DataFrame: Missions
+============================================================
+
+Global descriptive statistics:
+
+  Descriptive statistics of 'Launch Id':
+count    6791.000000
+mean     3187.768959
+std      1964.910383
+min         3.000000
+25%      1467.500000
+50%      3079.000000
+75%      4960.500000
+max      6891.000000
+
+  Descriptive statistics of 'No':
+count    6791.000000
+mean        1.232955
+std         0.822678
+min         1.000000
+25%         1.000000
+50%         1.000000
+75%         1.000000
+max        11.000000
+
+  Descriptive statistics of 'Payloads':
+count    6521.000000
+mean        1.809538
+std         5.704689
+min         1.000000
+25%         1.000000
+50%         1.000000
+75%         1.000000
+max       133.000000
+
+  Descriptive statistics of 'Mass':
+count     5969.000000
+mean      3530.356676
+std       4394.347410
+min          1.000000
+25%        580.000000
+50%       2230.000000
+75%       6300.000000
+max      90000.000000
+
+Dataframe info:
+<class 'pandas.DataFrame'>
+RangeIndex: 7450 entries, 0 to 7449
+Data columns (total 4 columns):
+ #   Column     Non-Null Count  Dtype  
+---  ------     --------------  -----  
+ 0   Launch Id  6791 non-null   float64
+ 1   No         6791 non-null   float64
+ 2   Payloads   6521 non-null   float64
+ 3   Mass       5969 non-null   float64
+dtypes: float64(4)
+memory usage: 232.9 KB

@@ -1,0 +1,57 @@
+feature,mean_drop,std_drop,ci_lower,ci_upper,significant
+rocket_prior_success_rate,0.0121,0.0023,0.0113,0.0129,True
+Price_cfg_missing,0.0082,0.0019,0.0075,0.0089,True
+launch_hour,0.0066,0.0028,0.0056,0.0076,True
+site_prior_success_rate,0.0065,0.0029,0.0055,0.0076,True
+site_prior_successes,0.0054,0.0026,0.0044,0.0063,True
+launch_month,0.0036,0.0025,0.0027,0.0044,True
+Price_cfg,0.0031,0.0008,0.0028,0.0034,True
+Launch Site Lon_loc,0.0021,0.0017,0.0015,0.0027,True
+fairing_slenderness,0.0016,0.001,0.0012,0.0019,True
+Stages_cfg,0.0015,0.0014,0.001,0.002,True
+has_strap_ons,0.001,0.0008,0.0007,0.0013,True
+total_payloads,0.0008,0.0015,0.0003,0.0013,True
+mission_data_missing,0.0008,0.0005,0.0006,0.001,True
+rocket_slenderness,0.0005,0.0011,0.0,0.0009,True
+Rocket Height (m)_cfg,0.0005,0.0009,0.0002,0.0008,True
+mission_count,0.0005,0.0009,0.0002,0.0009,True
+Company Country_USA_co,0.0005,0.0006,0.0003,0.0007,True
+Company Country_China_co,0.0003,0.0002,0.0003,0.0004,True
+payload_per_thrust,0.0003,0.0012,-0.0001,0.0008,False
+org_prior_success_rate,0.0003,0.0014,-0.0002,0.0009,False
+Fairing_Height_m_cfg_missing,0.0001,0.0002,0.0,0.0001,True
+Company Country_Brazil_co,0.0,0.0,0.0,0.0,False
+status_Active_cfg,-0.0,0.0007,-0.0003,0.0002,False
+Launch Year,0.0,0.0,0.0,0.0,False
+era_commercial,0.0,0.0,0.0,0.0,False
+is_multistage,0.0,0.0,0.0,0.0,False
+is_multi_payload,0.0,0.0011,-0.0003,0.0004,False
+org_is_first_launch,0.0,0.0,0.0,0.0,False
+Rocket_Height_m_cfg_missing,0.0,0.0001,-0.0,0.0001,False
+Liftoff_Thrust_kN_cfg_missing,0.0,0.0001,-0.0,0.0001,False
+Company Country_North Korea_co,0.0,0.0,0.0,0.0,False
+Company Country_South Korea_co,0.0,0.0,0.0,0.0,False
+Company Country_England_co,0.0,0.0,0.0,0.0,False
+Company Country_India_co,0.0,0.0,0.0,0.0,False
+Company Country_Germany_co,0.0,0.0,0.0,0.0,False
+Company Country_France_co,0.0,0.0,0.0,0.0,False
+Company Country_Italy_co,0.0,0.0,0.0,0.0,False
+Company Country_Japan_co,0.0,0.0,0.0,0.0,False
+Company Country_Israel_co,0.0,0.0,0.0,0.0,False
+Company Country_Iran_co,0.0,0.0,0.0,0.0,False
+Payload_to_LEO_kg_cfg_missing,-0.0,0.0001,-0.0,0.0,False
+Fairing_Diameter_m_cfg_missing,-0.0001,0.0002,-0.0001,0.0,False
+rocket_is_maiden_flight,-0.0002,0.001,-0.0005,0.0002,False
+payload_utilisation,-0.0002,0.0017,-0.0008,0.0004,False
+Liftoff Thrust (kN)_cfg,-0.0002,0.0007,-0.0004,0.0001,False
+Company Country_Russia_co,-0.0002,0.0004,-0.0003,-0.0001,False
+Company Country_Multi_co,-0.0003,0.0006,-0.0005,-0.0001,False
+Ownership_Private_co,-0.0004,0.001,-0.0008,-0.0001,False
+Payload_to_GTO_kg_cfg_missing,-0.0006,0.0003,-0.0007,-0.0005,False
+rocket_prior_launches,-0.0009,0.0011,-0.0013,-0.0005,False
+total_mass_kg,-0.0009,0.0021,-0.0016,-0.0001,False
+Payload to LEO (kg)_cfg,-0.001,0.0008,-0.0013,-0.0007,False
+Launch Site Lat_loc,-0.001,0.0013,-0.0015,-0.0006,False
+org_prior_launches,-0.001,0.0009,-0.0013,-0.0007,False
+Payload to GTO (kg)_cfg,-0.0013,0.0016,-0.0019,-0.0008,False
+Fairing Diameter (m)_cfg,-0.0018,0.0013,-0.0023,-0.0014,False

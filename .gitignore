@@ -180,6 +180,7 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
-# Data
-.data
-data/
+# Folders
+inputs/
+figures/
+tables/

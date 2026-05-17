@@ -1,0 +1,556 @@
+
+============================================================
+  DataFrame: Cleaned data
+============================================================
+
+Global descriptive statistics:
+
+  Descriptive statistics of 'Launch Time':
+count                          6168
+unique                         6167
+top       2019-02-05 21:01:00+00:00
+freq                              2
+
+  Descriptive statistics of 'Rocket Name':
+count        6168
+unique        409
+top       Soyuz U
+freq          778
+
+  Descriptive statistics of 'Rocket Organisation':
+count          6168
+unique           55
+top       RVSN USSR
+freq           2452
+
+  Descriptive statistics of 'Location':
+count                                          6168
+unique                                          137
+top       Site 1/5, Baikonur Cosmodrome, Kazakhstan
+freq                                            487
+
+  Descriptive statistics of 'Launch Year':
+count    6168.000000
+mean     1988.645104
+std        17.840137
+min      1957.000000
+25%      1974.000000
+50%      1986.000000
+75%      2003.000000
+max      2021.000000
+
+  Descriptive statistics of 'launch_success_binary':
+count    6168.000000
+mean        0.912127
+std         0.283133
+min         0.000000
+25%         1.000000
+50%         1.000000
+75%         1.000000
+max         1.000000
+
+  Descriptive statistics of 'Price_cfg':
+count    6168.000000
+mean       28.746907
+std       104.545335
+min        -1.000000
+25%        -1.000000
+50%        -1.000000
+75%        20.000000
+max      3000.000000
+
+  Descriptive statistics of 'Liftoff Thrust (kN)_cfg':
+count     6168.000000
+mean      4703.173962
+std       5346.937224
+min         -1.000000
+25%       1486.000000
+50%       4391.000000
+75%       4616.000000
+max      45307.000000
+
+  Descriptive statistics of 'Payload to LEO (kg)_cfg':
+count      6168.000000
+mean       7017.103761
+std        9754.629496
+min          -1.000000
+25%        1500.000000
+50%        6001.000000
+75%        7300.000000
+max      140000.000000
+
+  Descriptive statistics of 'Payload to GTO (kg)_cfg':
+count     6168.000000
+mean      1557.828145
+std       2718.312920
+min         -1.000000
+25%          0.000000
+50%          0.000000
+75%       2400.000000
+max      40000.000000
+
+  Descriptive statistics of 'Stages_cfg':
+count    6168.000000
+mean        2.827821
+std         0.753474
+min         0.000000
+25%         2.000000
+50%         3.000000
+75%         3.000000
+max         5.000000
+
+  Descriptive statistics of 'Strap-ons_cfg':
+count    6168.000000
+mean        2.124676
+std         2.314817
+min         0.000000
+25%         0.000000
+50%         2.000000
+75%         4.000000
+max         9.000000
+
+  Descriptive statistics of 'Rocket Height (m)_cfg':
+count    6168.000000
+mean       40.650737
+std        17.618462
+min        -1.000000
+25%        32.420000
+50%        44.630000
+75%        51.320000
+max       110.600000
+
+  Descriptive statistics of 'Fairing Diameter (m)_cfg':
+count    6168.000000
+mean        2.243719
+std         1.895008
+min        -1.000000
+25%         1.520000
+50%         2.620000
+75%         3.200000
+max         5.920000
+
+  Descriptive statistics of 'Fairing Height (m)_cfg':
+count    6168.000000
+mean        7.444257
+std         6.263033
+min        -1.000000
+25%         2.000000
+50%         7.450000
+75%        12.000000
+max        43.720000
+
+  Descriptive statistics of 'status_Active_cfg':
+count    6168.000000
+mean        0.177529
+std         0.382147
+min         0.000000
+25%         0.000000
+50%         0.000000
+75%         0.000000
+max         1.000000
+
+  Descriptive statistics of 'status_Planned_cfg':
+count    6168.0
+mean        0.0
+std         0.0
+min         0.0
+25%         0.0
+50%         0.0
+75%         0.0
+max         0.0
+
+  Descriptive statistics of 'status_Retired_cfg':
+count    6168.000000
+mean        0.822471
+std         0.382147
+min         0.000000
+25%         1.000000
+50%         1.000000
+75%         1.000000
+max         1.000000
+
+  Descriptive statistics of 'Company Country_Brazil_co':
+count    6168.000000
+mean        0.000486
+std         0.022050
+min         0.000000
+25%         0.000000
+50%         0.000000
+75%         0.000000
+max         1.000000
+
+  Descriptive statistics of 'Company Country_China_co':
+count    6168.000000
+mean        0.071498
+std         0.257676
+min         0.000000
+25%         0.000000
+50%         0.000000
+75%         0.000000
+max         1.000000
+
+  Descriptive statistics of 'Company Country_England_co':
+count    6168.000000
+mean        0.000324
+std         0.018006
+min         0.000000
+25%         0.000000
+50%         0.000000
+75%         0.000000
+max         1.000000
+
+  Descriptive statistics of 'Company Country_France_co':
+count    6168.000000
+mean        0.001946
+std         0.044069
+min         0.000000
+25%         0.000000
+50%         0.000000
+75%         0.000000
+max         1.000000
+
+  Descriptive statistics of 'Company Country_Germany_co':
+count    6168.000000
+mean        0.002108
+std         0.045864
+min         0.000000
+25%         0.000000
+50%         0.000000
+75%         0.000000
+max         1.000000
+
+  Descriptive statistics of 'Company Country_India_co':
+count    6168.000000
+mean        0.012646
+std         0.111750
+min         0.000000
+25%         0.000000
+50%         0.000000
+75%         0.000000
+max         1.000000
+
+  Descriptive statistics of 'Company Country_Iran_co':
+count    6168.000000
+mean        0.002270
+std         0.047592
+min         0.000000
+25%         0.000000
+50%         0.000000
+75%         0.000000
+max         1.000000
+
+  Descriptive statistics of 'Company Country_Israel_co':
+count    6168.000000
+mean        0.002108
+std         0.045864
+min         0.000000
+25%         0.000000
+50%         0.000000
+75%         0.000000
+max         1.000000
+
+  Descriptive statistics of 'Company Country_Italy_co':
+count    6168.000000
+mean        0.001459
+std         0.038174
+min         0.000000
+25%         0.000000
+50%         0.000000
+75%         0.000000
+max         1.000000
+
+  Descriptive statistics of 'Company Country_Japan_co':
+count    6168.000000
+mean        0.020590
+std         0.142019
+min         0.000000
+25%         0.000000
+50%         0.000000
+75%         0.000000
+max         1.000000
+
+  Descriptive statistics of 'Company Country_Multi_co':
+count    6168.000000
+mean        0.078632
+std         0.269185
+min         0.000000
+25%         0.000000
+50%         0.000000
+75%         0.000000
+max         1.000000
+
+  Descriptive statistics of 'Company Country_North Korea_co':
+count    6168.000000
+mean        0.000811
+std         0.028462
+min         0.000000
+25%         0.000000
+50%         0.000000
+75%         0.000000
+max         1.000000
+
+  Descriptive statistics of 'Company Country_Russia_co':
+count    6168.000000
+mean        0.515726
+std         0.499793
+min         0.000000
+25%         0.000000
+50%         1.000000
+75%         1.000000
+max         1.000000
+
+  Descriptive statistics of 'Company Country_South Korea_co':
+count    6168.000000
+mean        0.000649
+std         0.025460
+min         0.000000
+25%         0.000000
+50%         0.000000
+75%         0.000000
+max         1.000000
+
+  Descriptive statistics of 'Company Country_USA_co':
+count    6168.000000
+mean        0.288748
+std         0.453217
+min         0.000000
+25%         0.000000
+50%         0.000000
+75%         1.000000
+max         1.000000
+
+  Descriptive statistics of 'Ownership_Private_co':
+count    6168.000000
+mean        0.251783
+std         0.434073
+min         0.000000
+25%         0.000000
+50%         0.000000
+75%         1.000000
+max         1.000000
+
+  Descriptive statistics of 'Ownership_State_co':
+count    6168.000000
+mean        0.748217
+std         0.434073
+min         0.000000
+25%         0.000000
+50%         1.000000
+75%         1.000000
+max         1.000000
+
+  Descriptive statistics of 'total_payloads':
+count    6168.000000
+mean        1.727302
+std         5.518654
+min         0.000000
+25%         1.000000
+50%         1.000000
+75%         1.000000
+max       143.000000
+
+  Descriptive statistics of 'total_mass_kg':
+count     6168.000000
+mean      3251.267510
+std       4214.424809
+min          0.000000
+25%        300.000000
+50%       1970.000000
+75%       6300.000000
+max      90000.000000
+
+  Descriptive statistics of 'mission_count':
+count    6168.000000
+mean        1.030804
+std         0.685288
+min         0.000000
+25%         1.000000
+50%         1.000000
+75%         1.000000
+max        11.000000
+
+  Descriptive statistics of 'Country_loc':
+count              6168
+unique               20
+top       United States
+freq               1784
+
+  Descriptive statistics of 'Lat_loc':
+count    6168.000000
+mean       41.912677
+std        17.088794
+min       -39.260441
+25%        28.626383
+50%        45.964585
+75%        62.919937
+max        74.988392
+
+  Descriptive statistics of 'Lon_loc':
+count    6168.000000
+mean        8.619477
+std        77.356828
+min      -159.781957
+25%       -80.564712
+50%        40.574841
+75%        63.305243
+max       177.874615
+
+  Descriptive statistics of 'Launch Site Lat_loc':
+count    6168.000000
+mean       41.912138
+std        17.091169
+min       -39.208154
+25%        28.626383
+50%        45.964585
+75%        62.926415
+max        74.988392
+
+  Descriptive statistics of 'Launch Site Lon_loc':
+count    6168.000000
+mean        8.625766
+std        77.355988
+min      -159.781957
+25%       -80.563003
+50%        40.555239
+75%        63.305243
+max       177.870405
+
+  Descriptive statistics of 'mission_data_missing':
+count    6168.000000
+mean        0.099060
+std         0.298766
+min         0.000000
+25%         0.000000
+50%         0.000000
+75%         0.000000
+max         1.000000
+
+  Descriptive statistics of 'Price_cfg_missing':
+count    6168.000000
+mean        0.631647
+std         0.482397
+min         0.000000
+25%         0.000000
+50%         1.000000
+75%         1.000000
+max         1.000000
+
+  Descriptive statistics of 'Liftoff_Thrust_kN_cfg_missing':
+count    6168.000000
+mean        0.114137
+std         0.318004
+min         0.000000
+25%         0.000000
+50%         0.000000
+75%         0.000000
+max         1.000000
+
+  Descriptive statistics of 'Payload_to_LEO_kg_cfg_missing':
+count    6168.000000
+mean        0.137646
+std         0.344556
+min         0.000000
+25%         0.000000
+50%         0.000000
+75%         0.000000
+max         1.000000
+
+  Descriptive statistics of 'Payload_to_GTO_kg_cfg_missing':
+count    6168.000000
+mean        0.182393
+std         0.386199
+min         0.000000
+25%         0.000000
+50%         0.000000
+75%         0.000000
+max         1.000000
+
+  Descriptive statistics of 'Rocket_Height_m_cfg_missing':
+count    6168.000000
+mean        0.093547
+std         0.291222
+min         0.000000
+25%         0.000000
+50%         0.000000
+75%         0.000000
+max         1.000000
+
+  Descriptive statistics of 'Fairing_Diameter_m_cfg_missing':
+count    6168.000000
+mean        0.215467
+std         0.411179
+min         0.000000
+25%         0.000000
+50%         0.000000
+75%         0.000000
+max         1.000000
+
+  Descriptive statistics of 'Fairing_Height_m_cfg_missing':
+count    6168.000000
+mean        0.249189
+std         0.432579
+min         0.000000
+25%         0.000000
+50%         0.000000
+75%         0.000000
+max         1.000000
+
+Dataframe info:
+<class 'pandas.DataFrame'>
+RangeIndex: 6168 entries, 0 to 6167
+Data columns (total 51 columns):
+ #   Column                          Non-Null Count  Dtype  
+---  ------                          --------------  -----  
+ 0   Launch Time                     6168 non-null   str    
+ 1   Rocket Name                     6168 non-null   str    
+ 2   Rocket Organisation             6168 non-null   str    
+ 3   Location                        6168 non-null   str    
+ 4   Launch Year                     6168 non-null   int64  
+ 5   launch_success_binary           6168 non-null   int64  
+ 6   Price_cfg                       6168 non-null   float64
+ 7   Liftoff Thrust (kN)_cfg         6168 non-null   float64
+ 8   Payload to LEO (kg)_cfg         6168 non-null   float64
+ 9   Payload to GTO (kg)_cfg         6168 non-null   float64
+ 10  Stages_cfg                      6168 non-null   float64
+ 11  Strap-ons_cfg                   6168 non-null   int64  
+ 12  Rocket Height (m)_cfg           6168 non-null   float64
+ 13  Fairing Diameter (m)_cfg        6168 non-null   float64
+ 14  Fairing Height (m)_cfg          6168 non-null   float64
+ 15  status_Active_cfg               6168 non-null   int64  
+ 16  status_Planned_cfg              6168 non-null   int64  
+ 17  status_Retired_cfg              6168 non-null   int64  
+ 18  Company Country_Brazil_co       6168 non-null   int64  
+ 19  Company Country_China_co        6168 non-null   int64  
+ 20  Company Country_England_co      6168 non-null   int64  
+ 21  Company Country_France_co       6168 non-null   int64  
+ 22  Company Country_Germany_co      6168 non-null   int64  
+ 23  Company Country_India_co        6168 non-null   int64  
+ 24  Company Country_Iran_co         6168 non-null   int64  
+ 25  Company Country_Israel_co       6168 non-null   int64  
+ 26  Company Country_Italy_co        6168 non-null   int64  
+ 27  Company Country_Japan_co        6168 non-null   int64  
+ 28  Company Country_Multi_co        6168 non-null   int64  
+ 29  Company Country_North Korea_co  6168 non-null   int64  
+ 30  Company Country_Russia_co       6168 non-null   int64  
+ 31  Company Country_South Korea_co  6168 non-null   int64  
+ 32  Company Country_USA_co          6168 non-null   int64  
+ 33  Ownership_Private_co            6168 non-null   int64  
+ 34  Ownership_State_co              6168 non-null   int64  
+ 35  total_payloads                  6168 non-null   float64
+ 36  total_mass_kg                   6168 non-null   float64
+ 37  mission_count                   6168 non-null   int64  
+ 38  Country_loc                     6168 non-null   str    
+ 39  Lat_loc                         6168 non-null   float64
+ 40  Lon_loc                         6168 non-null   float64
+ 41  Launch Site Lat_loc             6168 non-null   float64
+ 42  Launch Site Lon_loc             6168 non-null   float64
+ 43  mission_data_missing            6168 non-null   int64  
+ 44  Price_cfg_missing               6168 non-null   int64  
+ 45  Liftoff_Thrust_kN_cfg_missing   6168 non-null   int64  
+ 46  Payload_to_LEO_kg_cfg_missing   6168 non-null   int64  
+ 47  Payload_to_GTO_kg_cfg_missing   6168 non-null   int64  
+ 48  Rocket_Height_m_cfg_missing     6168 non-null   int64  
+ 49  Fairing_Diameter_m_cfg_missing  6168 non-null   int64  
+ 50  Fairing_Height_m_cfg_missing    6168 non-null   int64  
+dtypes: float64(14), int64(32), str(5)
+memory usage: 2.4 MB
