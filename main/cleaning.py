@@ -60,11 +60,10 @@ def _one_hot(df: pd.DataFrame, col: str, prefix: str = None) -> pd.DataFrame:
 
 #  Companies
 #  Raw: Company Name | Company Country | Ownership
-#  Steps: OHE Company Country + OHE Ownership
 def clean_companies(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
  
-    # OHE: Company Country (15 countries)
+    # OHE: Company Country
     df = _one_hot(df, C.COMPANY_COUNTRY_COL)
     # OHE: Ownership (State / Private)
     df = _one_hot(df, C.OWNERSHIP_COL)
@@ -75,12 +74,6 @@ def clean_companies(df: pd.DataFrame) -> pd.DataFrame:
 #  Raw:    Family Id | No | Config | Status | Price | Liftoff Thrust |
 #          Payload to LEO | Payload to GTO | Stages | Strap-ons |
 #          Rocket Height | Fairing Diameter | Fairing Height
-#  Steps:
-#   - Create Config Id = FamilyId_No
-#   - Rename columns to include units in name
-#   - Strip units from string columns => float
-#   - OHE Status  (Active / Retired / Planned)
-#   - Fill Strap-ons nulls with 0 (structural zero, not missing)
 def clean_configs(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
  
@@ -127,10 +120,7 @@ def clean_configs(df: pd.DataFrame) -> pd.DataFrame:
 #  Families
 #  Raw:    Family Id | Family | Missions | Successes |
 #          Partial Failures | Failures | Success Streak | Success Rate
-#  Steps:
-#   - Fill null counts with 0
-#   - Parse Success Rate % => float [0, 1]
-#   - Cast count columns to int
+
 def clean_families(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
  
@@ -152,13 +142,6 @@ def clean_families(df: pd.DataFrame) -> pd.DataFrame:
 #          Rocket Payload to LEO | Location | Launch Year |
 #          Launch Year Mon | USD/kg to LEO | 2021 Mult |
 #          USD/kg to LEO CPI Adjusted | Rocket Price CPI Adjusted | Dum
-#  Notes:
-#   - Launch Suborbital has only one value ("Orbital") in the data =>
-#     dropped (zero-variance, useless for classification)
-#   - Dum column appears to be a constant flag => inspect and drop if constant
-#   - Launch Status is the TARGET variable => encode as binary + multiclass
-#   - Rocket Price / USD cols have ~63% nulls => keep as-is, imputation
-#     is an analytical decision, not a cleaning one
 def clean_launches(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
  
@@ -174,14 +157,11 @@ def clean_launches(df: pd.DataFrame) -> pd.DataFrame:
         print(f"  [INFO] Dropping '{C.DUM_COL}': constant column.")
         df = df.drop(columns=[C.DUM_COL])
  
-    # TARGET — binary: Success=1 / any failure=0
+    # TARGET - binary: Success = 1 and any failure=0
     df["launch_success_binary"] = (df[C.LAUNCH_STATUS_COL] == "Success").astype(int)
  
-    # TARGET — multiclass OHE (kept for reference / multi-output models)
+    # TARGET - multiclass OHE (kept for reference / multi-output models)
     df = _one_hot(df, C.LAUNCH_STATUS_COL, prefix="status")
- 
-    # Categorical identifiers — keep as string (no OHE: too high cardinality)
-    # Rocket Organisation and Location will be joined/encoded in the model pipeline
  
     return df
 
@@ -190,9 +170,7 @@ def clean_launches(df: pd.DataFrame) -> pd.DataFrame:
 #          Operator | Launch Site | Launch Site Lat | Launch Site Lon |
 #          Comb Launch Site | Comb Launch Site Lat | Comb Launch Site Lon |
 #          Operator Lat | Operator Lon
-#  Notes:
-#   - 2 nulls in Country / Country_Code => flagged
-#   - All coordinate columns already numeric, no unit stripping needed
+
 def clean_locations(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
  
@@ -200,14 +178,11 @@ def clean_locations(df: pd.DataFrame) -> pd.DataFrame:
     if null_country > 0:
         print(f"  [WARNING] {null_country} null(s) in '{C.COUNTRY_COL}' — review manually.")
  
-    # Coordinates are already float in the raw file — nothing to strip
     return df
 
 #  Missions
 #  Raw:    Launch Id | No | Payloads | Mass
-#  Notes:
-#   - 659 null Launch Id rows => orphan rows, flag them
-#   - Mass has 1481 nulls (payload mass unknown) => keep as NaN
+
 def clean_missions(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
  
@@ -241,7 +216,6 @@ def build_final_data(cleaned: dict) -> pd.DataFrame:
     locations = cleaned["Locations"].copy()
  
     # Reset index on tables that had set_index in loaders
-    # (Families uses Family Id as index, Launches uses Launch Id as index)
     if launches.index.name == C.LAUNCH_ID_COL:
         launches = launches.reset_index()
     if families.index.name == C.FAMILY_ID_COL:
@@ -252,13 +226,13 @@ def build_final_data(cleaned: dict) -> pd.DataFrame:
     configs_join = _add_suffix(
         configs,
         suffix="_cfg",
-        exclude=[C.CONFIG_COL, C.FAMILY_ID_COL],   # keep join keys unsuffixed
+        exclude=[C.CONFIG_COL, C.FAMILY_ID_COL],
     )
     df = launches.merge(
         configs_join,
         how="left",
-        left_on=C.ROCKET_NAME_COL,   # launches.Rocket Name
-        right_on=C.CONFIG_COL,        # configs.Config
+        left_on=C.ROCKET_NAME_COL, # launches.Rocket Name
+        right_on=C.CONFIG_COL, # configs.Config
         suffixes=("", "_cfg"),
     )
     print(f"  After launches => configs:   {df.shape}")
@@ -286,18 +260,18 @@ def build_final_data(cleaned: dict) -> pd.DataFrame:
     df = df.merge(
         companies_join,
         how="left",
-        left_on=C.ROCKET_ORGANISATION_COL,   # launches.Rocket Organisation
-        right_on=C.COMPANY_NAME_COL,          # companies.Company Name
+        left_on=C.ROCKET_ORGANISATION_COL, # launches.Rocket Organisation
+        right_on=C.COMPANY_NAME_COL, # companies.Company Name
         suffixes=("", "_co"),
     )
     print(f"  After families => companies:          {df.shape}")
  
     # 4. LEFT JOIN missions ON Launch Id = Launch Id
     # Missions is a one-to-many table (multiple payloads per launch).
-    # We aggregate per Launch Id so the join stays one-to-one with launches.
+    # They are aggregated per Launch Id so the join stays one-to-one with launches.
     missions_agg = (
         missions
-        .dropna(subset=[C.LAUNCH_ID_COL])           # drop orphan rows
+        .dropna(subset=[C.LAUNCH_ID_COL])
         .groupby(C.LAUNCH_ID_COL, as_index=False)
         .agg(
             total_payloads=(C.PAYLOADS_COL, "sum"),
@@ -324,8 +298,8 @@ def build_final_data(cleaned: dict) -> pd.DataFrame:
     df = df.merge(
         locations_join,
         how="left",
-        left_on=C.LOCATION_COL,   # launches.Location
-        right_on=C.ADRESS_COL,    # locations.Orig_Addr
+        left_on=C.LOCATION_COL, # launches.Location
+        right_on=C.ADRESS_COL, # locations.Orig_Addr
         suffixes=("", "_loc"),
     )
     print(f"  After missions => locations:          {df.shape}")
@@ -357,17 +331,6 @@ def drop_ids(df: pd.DataFrame) -> pd.DataFrame:
       - Country_Code_loc   : ISO code redundant with Country_loc
       - Operator Lat_loc / Operator Lon_loc : operator HQ coords, not launch pad coords
       - Comb Launch Site Lat_loc / Lon_loc  : near-duplicate of Launch Site Lat/Lon
- 
-    Kept as intentional string columns (for reference / later OHE in pipeline):
-      - Rocket Name        : useful for groupby analysis and explainability
-      - Rocket Organisation: useful for groupby / OHE in model pipeline
-      - Location           : useful for groupby / OHE in model pipeline
-      - Country_loc        : 20 unique values — low enough to OHE in pipeline
- 
-    NOTE: Missions_fam / Successes_fam / Success Rate_fam are dropped here too.
-    These are END-OF-DATASET snapshots (not point-in-time) for example : Falcon 9 row
-    from 2010 already shows 138 total missions from 2021. This is severe target
-    leakage. Point-in-time cumulative stats are rebuilt in feature_engineering.py.
     """
     df = df.copy()
  
@@ -376,11 +339,11 @@ def drop_ids(df: pd.DataFrame) -> pd.DataFrame:
         'Launch Id',
         'Family Id',
         'No_cfg',
-        'Config_cfg',           # may appear depending on suffix logic
-        'Config',               # raw string from configs, already covered
-        'Company Name',         # duplicate of Rocket Organisation
+        'Config_cfg',
+        'Config',
+        'Company Name',
  
-        # Raw strings already OHE'd
+        # Raw strings already done by OHE
         'Company Country_co',
         'Ownership_co',
         'Status_cfg',
@@ -399,7 +362,7 @@ def drop_ids(df: pd.DataFrame) -> pd.DataFrame:
         'Comb Launch Site Lat_loc',
         'Comb Launch Site Lon_loc',
  
-        # LEAKAGE: end-of-dataset family stats (not point-in-time)
+        # End-of-dataset family stats (not point-in-time)
         'Missions_fam',
         'Successes_fam',
         'Partial Failures_fam',
@@ -419,60 +382,56 @@ def drop_ids(df: pd.DataFrame) -> pd.DataFrame:
 # =============================================
 def handle_nulls(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Null handling strategy — driven by data investigation results:
+    Null handling strategy - driven by data investigation results:
  
-    GROUP 1 — DROP redundant duplicate columns
+    GROUP 1 - DROP redundant duplicate columns
       Rocket Price, Rocket Payload to LEO, USD/kg to LEO, USD/kg to LEO CPI Adjusted,
       Rocket Price CPI Adjusted are 100% identical to their _cfg / derived counterparts.
       Keeping both would give the model duplicate signal and inflate feature importance.
       => Dropping the launches-side duplicates; keeping the _cfg versions.
  
-    GROUP 2 — DROP columns that leak the target or are post-hoc
+    GROUP 2 - DROP columns that leak the target or are post-hoc
       status_Success, status_Failure, status_Partial Failure, status_Prelaunch Failure
       are OHE columns derived directly from Launch Status (the target).
       Launch Status itself (string) is also dropped for the same reason.
       => These must never be features in a classifier.
  
-    GROUP 3 — DROP 2021 Mult
+    GROUP 3 - DROP 2021 Mult
       Inflation multiplier used to compute CPI columns. It is not a feature of the
-      rocket or launch — it is a data-processing artifact. Not predictive.
+      rocket or launch - it is a data-processing artifact. Not predictive.
  
-    GROUP 4 — DROP high-cardinality string identifiers
-      Config Id_cfg, Config, Orig_Addr, Launch Year Mon — too many categories to OHE,
+    GROUP 4 - DROP high-cardinality string identifiers
+      Config Id_cfg, Config, Orig_Addr, Launch Year Mon - too many categories to OHE,
       and the information they carry is already covered by numeric/OHE features from
       the same table. Keeping them as raw strings would break sklearn pipelines.
  
-    GROUP 5 — FILL missions nulls with 0
-      611 launches (mostly pre-1970s) have no mission record. This is a data-coverage
-      gap, not a true "no payload". But for the model, 0 is a better signal than NaN
-      (the launch happened; we just don't have payload details). A flag column is added
+    GROUP 5 - FILL missions nulls with 0
+      Some launches (mostly pre-1970s) have no mission record. This is a data-coverage
+      gap, not a true "no payload". But for the model, 0 is a better signal than NaN. A flag column is added
       so the model can learn that "no record" is itself informative.
  
-    GROUP 6 — FILL Stages_cfg (1 null: Atlas SLV-3)
-      Median imputation — 1 row, well-known rocket, safe to impute.
+    GROUP 6 - FILL Stages_cfg (1 null: Atlas SLV-3)
+      Median imputation - 1 row, well-known rocket, safe to impute.
  
-    GROUP 7 — KEEP remaining nulls as-is, add missingness flags
+    GROUP 7 - KEEP remaining nulls as-is, add missingness flags
       Price_cfg (63% null), physical specs (partial nulls), total_mass_kg (10% null).
       Imputing 63% of a column with mean/median would destroy its signal entirely.
       Instead: add a binary flag column (col_missing = 1/0) so tree-based models
       can learn from the pattern of missingness itself, then fill NaN with -1
-      (a sentinel value outside the natural range — distinguishable from real zeros).
-      NOTE: for linear models or neural networks, need proper imputation + scaling instead.
-              The -1 flag is specifically appropriate for tree-based classifiers
-              (Random Forest, XGBoost, LightGBM) which can split on it meaningfully.
+      (a sentinel value outside the natural range - distinguishable from real zeros).
  
-    GROUP 8 — FILL location nulls (2 rows)
+    GROUP 8 - FILL location nulls (2 rows)
       Only 2 rows. Fill Country_loc / Country_Code_loc with 'Unknown'.
     """
     df = df.copy()
  
     # GROUP 1: Drop redundant duplicate columns
     drop_redundant = [
-        'Rocket Price',                  # identical to Price_cfg
-        'Rocket Payload to LEO',         # identical to Payload to LEO (kg)_cfg
-        'USD/kg to LEO',                 # derived from Price (post-hoc cost metric)
-        'USD/kg to LEO CPI Adjusted',    # same, CPI-adjusted
-        'Rocket Price CPI Adjusted',     # identical to Price_cfg * 2021 Mult
+        'Rocket Price', # identical to Price_cfg
+        'Rocket Payload to LEO', # identical to Payload to LEO (kg)_cfg
+        'USD/kg to LEO', # derived from Price (post-hoc cost metric)
+        'USD/kg to LEO CPI Adjusted', # same, CPI-adjusted
+        'Rocket Price CPI Adjusted', # identical to Price_cfg * 2021 Mult
     ]
     df = df.drop(columns=[c for c in drop_redundant if c in df.columns])
     print(f"  Dropped {len(drop_redundant)} redundant columns")
@@ -504,7 +463,7 @@ def handle_nulls(df: pd.DataFrame) -> pd.DataFrame:
         df[col] = df[col].fillna(0)
     print(f"  Filled {mission_cols} nulls with 0, added 'mission_data_missing' flag")
  
-    # GROUP 6: Stages_cfg — 1 null => median imputation
+    # GROUP 6: Stages_cfg - 1 null => median imputation
     stages_median = df['Stages_cfg'].median()
     df['Stages_cfg'] = df['Stages_cfg'].fillna(stages_median)
     print(f"  Filled 1 null in 'Stages_cfg' with median ({stages_median})")

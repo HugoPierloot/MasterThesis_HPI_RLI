@@ -3,7 +3,7 @@ from pathlib import Path
 
 
 class Constant:
-    ROOT_DIR = Path(__file__).resolve().parent.parent  # -- root directory of the project
+    ROOT_DIR = Path(__file__).resolve().parent.parent
     DATA_PATH = ROOT_DIR / 'data'
     DATA_PATH_INPUTS = DATA_PATH / 'inputs'
     DATA_PATH_INPUTS_RAW = DATA_PATH_INPUTS / 'raw'
@@ -100,7 +100,7 @@ class Constant:
     RATINGS_SCALE = (0.5,5)  # ratings scale as a tuple (min_value, max_value)
 
     # Top N for chart distribution ploting
-    TOP_N = 15          # for high-cardinality string columns
+    TOP_N = 15 # for high-cardinality string columns
     CARDINALITY_THRESHOLD = 20
 
     # Correlation analysis threshold to drop columns

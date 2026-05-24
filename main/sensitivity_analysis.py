@@ -1,14 +1,3 @@
-# ─────────────────────────────────────────────────────────────
-#  sensitivity_analysis
-#
-#  Run training + evaluation + SHAP explainability in either:
-#    - ONE-SHOT mode : single parameter configuration
-#    - SENSITIVITY mode : grid over parameter ranges, one run per combination, all results saved and compared
-#
-#  All figures are saved to subdirectories named after the run ID.
-#  So no files ever overwrite each other across loop iterations.
-# ─────────────────────────────────────────────────────────────
-
 # Standard library imports
 import itertools
 import json
@@ -51,14 +40,14 @@ ONE_SHOT_CONFIG = {
 
     # SMOTE
     "apply_smote"     : True,
-    "smote_strategy"  : 0.3,    # minority/majority ratio after SMOTE
+    "smote_strategy"  : 0.3, # minority/majority ratio after SMOTE
 
     # Threshold
-    "threshold"       : 0.5,    # decision threshold for binary output
+    "threshold"       : 0.5, # decision threshold for binary output
 
     # Random Forest
     "rf_n_estimators" : 300,
-    "rf_max_depth"    : None,   # None = grow full trees
+    "rf_max_depth"    : None,  # None = grow full trees
     "rf_min_samples_leaf": 2,
 
     # XGBoost
@@ -83,16 +72,6 @@ ONE_SHOT_CONFIG = {
     ],
     "shap_waterfall_cases": 3,
 }
-
-
-# ─────────────────────────────────────────────────────────────
-#  SENSITIVITY GRID
-#  Each key maps to a list of values to sweep.
-#  The grid is the CARTESIAN PRODUCT of all lists.
-#  Keep grids small — 3×3×2 = 18 full training runs.
-#
-#  Tip: comment out axes you don't want to sweep to reduce runtime.
-# ─────────────────────────────────────────────────────────────
 
 SENSITIVITY_GRID = {
     "smote_strategy"   : [0.2, 0.3, 0.5],
@@ -207,8 +186,8 @@ def run_single(
     One complete training + evaluation (+ optional SHAP) run.
 
     Args:
-        cfg         : parameter dict (merged ONE_SHOT_CONFIG + overrides)
-        run_id      : unique string label — used for filenames and subfolder
+        cfg         : parameter dict (merge ONE_SHOT_CONFIG + overrides)
+        run_id      : unique string label - used for filenames and subfolder
         run_shap    : whether to run SHAP explainability
         random_state: seed
         verbose     : print progress
@@ -295,7 +274,7 @@ def run_single(
     # Override C paths temporarily via monkey-patch on evaluation module
     import models.evaluation as ev_mod
     _orig_fig_dir_fn = ev_mod._get_fig_dir
-    ev_mod._get_fig_dir = lambda: fig_dir  # redirect all saves to run subfolder
+    ev_mod._get_fig_dir = lambda: fig_dir # redirect all saves to run subfolder
 
     try:
         for name, model in fitted_models.items():
@@ -347,7 +326,7 @@ def run_single(
 
 def _build_grid(grid: dict, base_cfg: dict) -> list[dict]:
     """
-    Returns a list of config dicts — one per combination in the grid.
+    Returns a list of config dicts - one per combination in the grid.
     Each dict is base_cfg with the grid overrides applied.
     """
     keys   = list(grid.keys())
@@ -375,8 +354,7 @@ def _build_grid(grid: dict, base_cfg: dict) -> list[dict]:
             cfg[k] = v
         all_configs.append(cfg)
  
-    # Deduplicate: for each model, only keep configs that differ on params
-    # relevant to that model. Irrelevant params (e.g. xgb_* for RF) are ignored.
+    # Deduplicate: for each model, only keep configs that differ on params relevant to that model.
     seen_per_model  = {m: set() for m in MODEL_KEYS}
     dedup_configs   = []
     dedup_per_model = {m: [] for m in MODEL_KEYS}
@@ -390,7 +368,7 @@ def _build_grid(grid: dict, base_cfg: dict) -> list[dict]:
                 seen_per_model[model].add(sig)
                 dedup_per_model[model].append(cfg)
  
-    # Strategy: keep configs that are unique for AT LEAST ONE model.
+    # Keeping configs that are unique for AT LEAST ONE model.
     # Tagging each config with which models need a fresh run.
     seen_globally = set()
     configs = []
@@ -424,7 +402,7 @@ def plot_sensitivity_summary(df_all: pd.DataFrame, sweep_param: str):
     """
     For a single swept parameter, plot F1 / Recall / AUC-PR
     of each model across its values.
-    One chart per model — overlay metrics as lines.
+    One chart per model - overlay metrics as lines.
     """
     fig_dir = C.DATA_PATH_OUTPUTS_FIG / "sensitivity"
     fig_dir.mkdir(parents=True, exist_ok=True)
@@ -480,7 +458,7 @@ def run_one_shot(
 
     Args:
         cfg      : dict of parameter overrides (merged on top of ONE_SHOT_CONFIG).
-                   Pass only the keys you want to change — all others use defaults.
+                   Pass only the keys you want to change - all others use defaults.
         run_shap : include SHAP explainability (default True). Set False for speed.
         verbose  : print progress.
 
@@ -514,7 +492,7 @@ def run_sensitivity(
     verbose  : bool = True,
 ):
     """
-    Sweep a parameter grid — one full training run per combination.
+    Sweep a parameter grid - one full training run per combination.
 
     Args:
         grid     : dict mapping parameter name -> list of values.
@@ -526,7 +504,7 @@ def run_sensitivity(
         verbose  : print progress for each run.
 
     Returns:
-        pd.DataFrame — one row per (run x model), columns include all
+        pd.DataFrame - one row per (run x model), columns include all
         swept parameters + f1 / recall / auc_pr / mcc / run_id.
         Saved files:
           evaluation_reports/sensitivity_grid_{ts}.csv

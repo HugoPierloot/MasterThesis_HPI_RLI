@@ -2,31 +2,29 @@
 #  Evaluation
 #
 #  Unified evaluation for all classifiers.
-#  Same metrics are computed for every model so results are
-#  directly comparable in the thesis and in saved reports.
+#  Same metrics are computed for every model so results are directly comparable in the thesis and in saved reports.
 #
 #  Metrics chosen for imbalanced binary classification:
-#
-#    Accuracy        — included but flagged as misleading (91.2%
+#    Accuracy        = included but flagged as misleading (91.2%
 #                      baseline trap). Reported for completeness.
-#    Precision       — of all predicted failures, how many were real?
-#    Recall          — of all real failures, how many did we catch?
+#    Precision       = of all predicted failures, how many were real?
+#    Recall          = of all real failures, how many did we catch?
 #                      This is the MOST IMPORTANT metric for this
 #                      problem: a missed failure is more costly than
 #                      a false alarm.
-#    F1-score        — harmonic mean of precision and recall.
+#    F1-score        = harmonic mean of precision and recall.
 #                      Primary metric for model comparison.
-#    F2-score        — weights recall twice vs precision
+#    F2-score        = weights recall twice vs precision
 #                      (Fbeta with beta=2). Used when missing a
 #                      failure is more costly than a false alarm.
-#    AUC-ROC         — discrimination ability across all thresholds.
-#    AUC-PR          — area under precision-recall curve.
+#    AUC-ROC         = discrimination ability across all thresholds.
+#    AUC-PR          = area under precision-recall curve.
 #                      More informative than AUC-ROC for imbalanced data
 #                      because it focuses on the minority class.
-#    MCC             — Matthews Correlation Coefficient.
+#    MCC             = Matthews Correlation Coefficient.
 #                      Single metric that accounts for all 4 cells
 #                      of the confusion matrix. Range [-1, 1].
-#    Confusion Matrix — raw TP/FP/TN/FN for full picture.
+#    Confusion Matrix = raw TP/FP/TN/FN for full picture.
 # ─────────────────────────────────────────────────────────────
 
 import numpy as np
@@ -121,7 +119,7 @@ def evaluate_model(
     if hasattr(model, "predict_proba"):
         y_proba = model.predict_proba(X_test)[:, 1]
     elif hasattr(model, "decision_function"):
-        # SVM / linear models — convert scores to probabilities via sigmoid
+        # SVM / linear models - convert scores to probabilities via sigmoid
         scores  = model.decision_function(X_test)
         y_proba = 1 / (1 + np.exp(-scores))
 
@@ -168,7 +166,7 @@ def save_report(df: pd.DataFrame, filename: str = "model_comparison.csv"):
 #  Visualisations
 # ─────────────────────────────────────────────────────────────
 
-FIG_DIR = None   # set at call time from C.DATA_PATH_OUTPUTS_FIG / "models"
+FIG_DIR = None
 
 
 def _get_fig_dir() -> Path:

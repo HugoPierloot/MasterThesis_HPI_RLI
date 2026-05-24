@@ -17,8 +17,6 @@ def load_raw_companies():
         return None
     try:
         df_loaded = pd.read_csv(full_path)
-        #TODO: Basic, there was an index on the ID column. See if  it doesn't break anything to remove it.
-        #df_loaded = df_loaded.set_index(C.FAMILY_ID_COL)
     except Exception as e:
         print(f"[ERROR] Failed to load or convert {file}: {e}")
         return None
@@ -195,7 +193,7 @@ def plot_distributions(named_dfs: dict, stage: str):
                         fontsize=8, color="black"
                     )
 
-            # --- Null count annotation: always displayed, top-right corner
+            # Null count annotation: always displayed, top-right corner
             null_color = "red" if null_count > 0 else "green"
             ax.annotate(
                 null_label,
@@ -216,7 +214,7 @@ def plot_distributions(named_dfs: dict, stage: str):
         print(f"Saved: {output_dir / filename}")
 
 # Evaluation reports export:
-#TODO: Must be adapted to the master thesis project (originally made in Recommender Systems Project).
+# Must be adapted to the master thesis project (originally made in Recommender Systems Project).
 def export_evaluation_report(df):
     """ Export the report to the evaluation folder.
     The name of the report is versioned using today's date

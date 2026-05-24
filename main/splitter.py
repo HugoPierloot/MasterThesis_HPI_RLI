@@ -12,30 +12,11 @@ from constants import Constant as C
 # ─────────────────────────────────────────────────────────────
 
 TARGET     = 'launch_success_binary'
-CUT_YEAR   = 2010        # temporal split boundary (see analysis below)
+CUT_YEAR   = 2010
 RANDOM_STATE = 42
 
-# String reference columns — informative for analysis but not fed to models
+# String reference columns
 STR_REFS = ['Rocket Name', 'Rocket Organisation', 'Location', 'Country_loc']
-
-# ─────────────────────────────────────────────────────────────
-#  This dataset is a time series. Using random train/test split
-#  would allow the model to train on 2015 data and test on 1980
-#  data — impossible in production where we predict future launches.
-#
-#  Cut year 2010 was selected because:
-#  - Train (1957–2009): 5,020 rows, 472 failures, 42 organisations
-#  - Test  (2010–2021): 1,148 rows,  70 failures, 35 organisations
-#  - Test set is the modern era (commercial launch boom).
-#
-#  SMOTE only on training data:
-#  The test set must reflect the real-world class distribution
-#  (91% success / 9% failure). Applying SMOTE to the test set
-#  would measure performance on an artificial distribution.
-#  SMOTE is applied ONLY to X_train / y_train after the split.
-#
-#  SMOTE requires only numeric features — string refs are excluded.
-# ─────────────────────────────────────────────────────────────
 
 def get_feature_cols(df: pd.DataFrame) -> list:
     """Return the numeric feature columns (excludes target + string refs)."""
@@ -63,17 +44,17 @@ def make_split(
         cut_year      : first year included in the test set (default 2010).
         apply_smote   : whether to apply SMOTE to X_train (default True).
         smote_strategy: target ratio minority/majority after SMOTE (default 0.3
-                        = 30 failures per 100 successes, i.e. ~23% failure rate).
+                        = 30 failures per 100 successes, ~23% failure rate).
                         Set to 1.0 for fully balanced.
         random_state  : reproducibility seed.
         verbose       : print split summary.
 
     Returns:
         dict with keys:
-            X_train, X_test, y_train, y_test  — numpy arrays
-            X_train_raw, X_test_raw           — DataFrames (with string refs)
-            feature_cols                       — list of feature column names
-            df_train, df_test                 — full DataFrames before SMOTE
+            X_train, X_test, y_train, y_test - numpy arrays
+            X_train_raw, X_test_raw - DataFrames (with string refs)
+            feature_cols - list of feature column names
+            df_train, df_test - full DataFrames before SMOTE
     """
     if df is None:
         path = C.DATA_PATH_INPUTS_CLEAN / "model_data.csv"

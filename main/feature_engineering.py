@@ -28,7 +28,6 @@ def _require_sorted(df: pd.DataFrame) -> pd.DataFrame:
 
 # ─────────────────────────────────────────────────────────────
 #  A. Temporal features
-#  Rationale: early space age had far more failures; launch hour and month proxy for weather windows and political scheduling.
 # ─────────────────────────────────────────────────────────────
 
 def add_temporal_features(df: pd.DataFrame) -> pd.DataFrame:
@@ -49,11 +48,9 @@ def add_temporal_features(df: pd.DataFrame) -> pd.DataFrame:
 
 
 # ─────────────────────────────────────────────────────────────
-#  B. Rocket experience — point-in-time cumulative
+#  B. Rocket experience - point-in-time cumulative
 #
-#  Count only launches of the SAME rocket that happened STRICTLY BEFORE it.
-#  A rocket on its first flight has no track record;
-#  and the 50th flight of a proven rocket is a very different risk profile.
+#  Count only launches of the SAME rocket that happened BEFORE it.
 # ─────────────────────────────────────────────────────────────
 
 def add_rocket_experience_features(df: pd.DataFrame) -> pd.DataFrame:
@@ -61,7 +58,7 @@ def add_rocket_experience_features(df: pd.DataFrame) -> pd.DataFrame:
 
     # Per exact rocket name cumcount gives 0-indexed count of prior launches of same rocket
     df['rocket_prior_launches'] = (
-        df.groupby('Rocket Name').cumcount()  # 0 = first flight ever
+        df.groupby('Rocket Name').cumcount() # 0 = first flight ever
     )
     df['rocket_prior_successes'] = (
         df.groupby('Rocket Name')['launch_success_binary']
@@ -74,7 +71,7 @@ def add_rocket_experience_features(df: pd.DataFrame) -> pd.DataFrame:
     global_mean = df['launch_success_binary'].mean()
     df['rocket_prior_success_rate'] = np.where(
         df['rocket_prior_launches'] == 0,
-        global_mean,  # first flight: use global base rate
+        global_mean, # first flight: use global base rate
         df['rocket_prior_successes'] / df['rocket_prior_launches']
     )
 
@@ -86,11 +83,9 @@ def add_rocket_experience_features(df: pd.DataFrame) -> pd.DataFrame:
 
 
 # ─────────────────────────────────────────────────────────────
-#  C. Organisation experience — point-in-time cumulative
+#  C. Organisation experience - point-in-time cumulative
 #
 #  Same logic as B but at the organisation level.
-#  A new company attempting its first launch (e.g. Iran,
-#  North Korea) is very different from SpaceX on launch #100.
 # ─────────────────────────────────────────────────────────────
 
 def add_organisation_experience_features(df: pd.DataFrame) -> pd.DataFrame:
@@ -122,10 +117,8 @@ def add_organisation_experience_features(df: pd.DataFrame) -> pd.DataFrame:
 # ─────────────────────────────────────────────────────────────
 #  D. Physical design features (ratios & flags)
 #
-#  Raw measurements (height, thrust) are hard to interpret alone,
-#  their ratios reveal design complexity and engineering margins.
-#  All computed on _cfg columns which use -1 sentinel for missing;
-#  ratio is set to -1 when either input is missing (-1).
+#  Raw measurements (height, thrust) are hard to interpret alone, their ratios reveal design complexity and engineering margins.
+#  All computed on _cfg columns which use -1 sentinel for missing ratio is set to -1 when either input is missing (-1).
 # ─────────────────────────────────────────────────────────────
 
 def add_physical_features(df: pd.DataFrame) -> pd.DataFrame:
@@ -137,7 +130,7 @@ def add_physical_features(df: pd.DataFrame) -> pd.DataFrame:
         df[result_col] = np.where(
             valid,
             df[num_col] / df[den_col],
-            -1  # preserve sentinel for missing
+            -1 # preserve sentinel for missing
         )
 
     # Payload efficiency: how much payload per unit of thrust
@@ -161,10 +154,9 @@ def add_physical_features(df: pd.DataFrame) -> pd.DataFrame:
 
 
 # ─────────────────────────────────────────────────────────────
-#  E. Launch site experience — point-in-time cumulative
+#  E. Launch site experience - point-in-time cumulative
 #
-#  Some launch sites (Baikonur, Cape Canaveral) have decades of
-#  experience; others are brand new.
+#  Some launch sites (Baikonur, Cape Canaveral) have decades of experience, others are brand new.
 # ─────────────────────────────────────────────────────────────
 
 def add_launch_site_features(df: pd.DataFrame) -> pd.DataFrame:
@@ -193,10 +185,6 @@ def add_launch_site_features(df: pd.DataFrame) -> pd.DataFrame:
 
 # ─────────────────────────────────────────────────────────────
 #  F. Mission payload features
-#
-#  Heavier/more complex payloads push rockets closer to their
-#  performance envelope. Payload fraction (mass / capacity) is
-#  a proxy for mission difficulty.
 # ─────────────────────────────────────────────────────────────
 
 def add_payload_features(df: pd.DataFrame) -> pd.DataFrame:
@@ -220,12 +208,6 @@ def add_payload_features(df: pd.DataFrame) -> pd.DataFrame:
 
 # ─────────────────────────────────────────────────────────────
 #  G. Drop columns no longer needed after feature engineering
-#
-#  Launch Time (raw string) and Launch Year Mon are not directly
-#  usable by sklearn — their information is captured in A–E.
-#  Rocket Name / Rocket Organisation / Location are kept as
-#  string labels for explainability groupby analysis, but must
-#  be excluded from the feature matrix X when training.
 # ─────────────────────────────────────────────────────────────
 
 def drop_post_engineering(df: pd.DataFrame) -> pd.DataFrame:
@@ -261,8 +243,6 @@ def drop_high_correlation(
  
     # 2. Identify numeric columns to check
     #    Exclude: target, string reference cols, missingness flags
-    #    (flags are structural correlates of their parent column — tree models
-    #     use them independently; dropping them based on correlation loses signal)
     exclude_from_check = {'launch_success_binary'}
     flag_cols = {c for c in df.columns if c.endswith('_missing')}
     str_cols  = set(df.select_dtypes(include=['object', 'str']).columns)
@@ -274,8 +254,7 @@ def drop_high_correlation(
     # 3. Compute correlation matrix
     corr_matrix = df[numeric_check_cols].corr().abs()
  
-    # 4. Greedy drop: iterate upper triangle, drop the less "central" column
-    #    "centrality" = mean absolute correlation with all other features
+    # 4. Greedy drop: iterate upper triangle, drop the less "central" column "centrality" = mean absolute correlation with all other features
     mean_corr = corr_matrix.mean(axis=1)
     dropped_auto = []
     cols_to_check = list(numeric_check_cols)
@@ -318,7 +297,7 @@ def run_feature_engineering(df: pd.DataFrame = None) -> pd.DataFrame:
     engineering steps, and save the result as model_data.csv.
 
     Args:
-        df: optional — pass a DataFrame directly (e.g. from run_cleaning()).
+        df: optional - pass a DataFrame directly.
             If None, loads from DATA_PATH_INPUTS_CLEAN / final_data.csv.
 
     Returns:
@@ -355,7 +334,7 @@ def run_feature_engineering(df: pd.DataFrame = None) -> pd.DataFrame:
     print(f"  Saved        => {out_path}")
     print()
 
-    # Summary of string columns still present (must be excluded from X)
+    # Summary of string columns still present.
     str_cols = df.select_dtypes(include=['object', 'str']).columns.tolist()
     if str_cols:
         print(f"  [INFO] {len(str_cols)} string columns kept for reference "

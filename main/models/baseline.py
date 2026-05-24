@@ -2,8 +2,7 @@
 #  Baseline
 #
 #  Naive baseline classifiers.
-#  Purpose: establish the performance floor that every real model
-#  must beat. If a model can't beat the baseline, it adds no value.
+#  Purpose: establish the performance floor that every real model  must beat. If a model can't beat the baseline, it adds no value.
 #
 #  Baselines implemented:
 #    1. MajorityClassifier  — always predicts 1 (Success)

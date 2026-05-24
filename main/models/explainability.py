@@ -3,16 +3,10 @@
 #
 #  SHAP-based explainability for all trained classifiers.
 #
-#  SHAP (SHapley Additive exPlanations) by Lundberg & Lee (2017)
-#  computes each feature's contribution to each individual
-#  prediction using game-theory Shapley values.
-#
 #  Note on sentinel -1 values:
-#    Several features use -1 to encode "missing data" (e.g. Price_cfg
-#    is -1 for 63% of rows). SHAP will correctly attribute influence
-#    to those features when -1 causes predictions to shift — so a
-#    large SHAP value for Price_cfg_missing or Price_cfg=-1 means
-#    "the absence of price information itself is predictive".
+#    Several features use -1 to encode "missing data". 
+#    SHAP will correctly attribute influence to those features when -1 causes predictions to shift,
+#    so a large SHAP value for Price_cfg_missing or Price_cfg=-1 means "the absence of price information itself is predictive".
 # ─────────────────────────────────────────────────────────────
 
 # Standard library imports
@@ -52,7 +46,7 @@ def _save(fig, name: str):
 
 
 # ─────────────────────────────────────────────────────────────
-#  Explainer factory
+#  Explainer
 # ─────────────────────────────────────────────────────────────
 
 TREE_TYPES = (
@@ -80,7 +74,7 @@ def build_explainer(
 
     Args:
         model        : fitted sklearn-compatible estimator
-        X_background : training data (numpy array) — used as background
+        X_background : training data (numpy array) used as background
                        for TreeExplainer / KernelExplainer
         feature_names: list of column names (for labelling)
         n_background : number of background samples for KernelExplainer
@@ -116,16 +110,15 @@ def compute_shap_values(
     print(f"    Computing SHAP for {model_name} on {len(X)} samples...",
           end=" ", flush=True)
     raw = explainer.shap_values(X)
-    # OLD SHAP API
+
     if isinstance(raw, list):
         if len(raw) == 2:
             sv = raw[1]   # class 1
         else:
             sv = raw[0]
-    # NEW SHAP API => ndarray
+
     elif isinstance(raw, np.ndarray):
-        # Binary/multiclass classifier:
-        # shape = (samples, features, classes)
+        # Binary/multiclass classifier
         if raw.ndim == 3:
             sv = raw[:, :, 1]
         # Standard regression/binary output
@@ -218,17 +211,17 @@ def plot_waterfall_single(
     label: str = "sample",
 ):
     """
-    Waterfall plot for ONE individual prediction.
+    Waterfall plot for one individual prediction.
     Shows exactly why the model predicted what it did for that launch.
     Useful for case-study analysis in your thesis.
 
     Args:
         sample_idx : index in X_test of the launch to explain
-        label      : description of the launch (e.g. 'first failure in test set')
+        label      : description of the launch
     """
     sv = explainer(X_test[[sample_idx]])
     if hasattr(sv, "values") and sv.values.ndim == 3:
-        # Binary classifier returns (n, features, 2) — take class 1
+        # Binary classifier returns (n, features, 2), take class 1
         explanation = shap.Explanation(
             values    = sv.values[0, :, 1],
             base_values = sv.base_values[0, 1],
