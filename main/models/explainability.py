@@ -49,19 +49,21 @@ def _save(fig, name: str):
 #  Explainer
 # ─────────────────────────────────────────────────────────────
 
-TREE_TYPES = (
+# Only models with native SHAP TreeExplainer support.
+# AdaBoostClassifier and RUSBoostClassifier are intentionally excluded:
+# SHAP's TreeExplainer cannot decompose their internal boosting structure
+# correctly, so they are routed to KernelExplainer instead.
+_TREE_EXPLAINER_TYPES = {
     "RandomForestClassifier",
     "XGBClassifier",
-    "AdaBoostClassifier",
     "GradientBoostingClassifier",
-)
+    "ExtraTreesClassifier",
+    "LGBMClassifier",
+}
 
 def _is_tree(model) -> bool:
-    class_name = type(model).__name__
-    # RUSBoost wraps AdaBoost internally
-    return (class_name in TREE_TYPES or
-            "Boost" in class_name or
-            "Forest" in class_name)
+    """Return True only for models that TreeExplainer handles correctly."""
+    return type(model).__name__ in _TREE_EXPLAINER_TYPES
 
 def build_explainer(
     model,
@@ -72,27 +74,37 @@ def build_explainer(
     """
     Build the appropriate SHAP explainer for the given model.
 
+    - RandomForest, XGBoost  → TreeExplainer (exact, fast).
+    - AdaBoost, RUSBoost     → KernelExplainer (model-agnostic, slower).
+      These two are routed here deliberately: SHAP's TreeExplainer cannot
+      correctly decompose scikit-learn AdaBoostClassifier or the
+      RUSBoostClassifier wrapper around it. KernelExplainer approximates
+      SHAP values by perturbing inputs against a k-means background; it is
+      much slower but produces correct values for any predict_proba model.
+      A background of 50 centroids is a practical trade-off for thesis use.
+
     Args:
         model        : fitted sklearn-compatible estimator
         X_background : training data (numpy array) used as background
-                       for TreeExplainer / KernelExplainer
         feature_names: list of column names (for labelling)
-        n_background : number of background samples for KernelExplainer
+        n_background : max background centroids for KernelExplainer
 
     Returns:
-        shap.Explainer or shap.TreeExplainer instance
+        shap.TreeExplainer or shap.KernelExplainer instance
     """
     if _is_tree(model):
-        # TreeExplainer: exact and fast for tree-based models
+        # TreeExplainer: exact and fast for natively supported tree models
         explainer = shap.TreeExplainer(
             model,
             data=shap.sample(X_background, min(500, len(X_background))),
             feature_perturbation="interventional",
         )
     else:
-        # KernelExplainer more slow
-        background = shap.kmeans(X_background, min(n_background, 50))
-        explainer  = shap.KernelExplainer(
+        # KernelExplainer: model-agnostic fallback for AdaBoost / RUSBoost.
+        # k-means compression keeps the background small enough to be tractable.
+        n_centroids = min(n_background, 50)
+        background  = shap.kmeans(X_background, n_centroids)
+        explainer   = shap.KernelExplainer(
             model.predict_proba if hasattr(model, "predict_proba")
             else model.predict,
             background,
@@ -245,11 +257,19 @@ def plot_dependence(
     feature_names: list,
     model_name: str,
     feature: str,
-    interaction_feature: str = "auto",
+    interaction_feature: str = None,
 ):
     """
     Dependence plot: SHAP value of one feature vs its raw value.
-    Reveals non-linear effects and interactions.
+    Reveals non-linear effects and threshold/saturation patterns.
+
+    interaction_feature:
+        The feature used for the colour axis (a second dimension of variation).
+        Defaults to None = no colour axis. Use None unless you have a specific,
+        theoretically motivated pair to examine (e.g. org_prior_success_rate
+        coloured by site_prior_successes). Avoid "auto" - SHAP's automatic
+        selection often picks correlated but interpretively meaningless features
+        (e.g. launch_hour for has_strap_ons).
     """
     feat_idx = feature_names.index(feature)
     fig, ax  = plt.subplots(figsize=(8, 5))
@@ -258,11 +278,15 @@ def plot_dependence(
         shap_values,
         X_test[:len(shap_values)],
         feature_names=feature_names,
-        interaction_index=interaction_feature,
+        interaction_index=interaction_feature, # None = no colour axis
         ax=ax,
         show=False,
     )
-    ax.set_title(f"SHAP Dependence — {feature}\n({model_name})",
+    if interaction_feature:
+        subtitle = f"colour = {interaction_feature}"
+    else:
+        subtitle = "no interaction colour"
+    ax.set_title(f"SHAP Dependence — {feature}\n({model_name}, {subtitle})",
                  fontsize=11, fontweight="bold")
     plt.tight_layout()
     fname = f"shap_dependence_{model_name.lower()}_{feature.replace(' ','_')[:30]}"
@@ -460,6 +484,136 @@ def plot_permutation_importance(df: pd.DataFrame, model_name: str, top_n: int = 
 #  Master runner
 # ─────────────────────────────────────────────────────────────
 
+def _select_dependence_features(
+    shap_values: np.ndarray,
+    X_test: np.ndarray,
+    feature_names: list,
+    requested: list,
+    n_dependence: int,
+    min_unique: int = 3,
+) -> list:
+    """
+    Build the list of features to draw dependence plots for.
+
+    Strategy:
+      1. Start with explicitly requested features (if they pass the variance
+         filter below).
+      2. Fill remaining slots from features ranked by mean |SHAP|, highest
+         first, until `n_dependence` features are selected.
+
+    Variance filter — a feature is EXCLUDED when:
+      - it has fewer than `min_unique` distinct values in X_test (e.g. a
+        binary flag that is always 1 in the test set like era_commercial),
+        because a single vertical strip of points carries no information.
+
+    Args:
+        shap_values  : (n_samples, n_features) SHAP array for class 1
+        X_test       : (n_samples, n_features) raw feature matrix
+        feature_names: list of column names
+        requested    : features explicitly requested (used first if they pass filter)
+        n_dependence : total number of dependence plots to produce
+        min_unique   : minimum distinct values in X_test to include a feature
+
+    Returns:
+        list of feature names, length <= n_dependence
+    """
+    # Pre-compute which features have enough variation to be worth plotting
+    X_slice = X_test[:len(shap_values)]
+    has_variance = {
+        feat: int(np.unique(X_slice[:, i]).size) >= min_unique
+        for i, feat in enumerate(feature_names)
+    }
+
+    requested = requested or []
+    selected  = [f for f in requested if f in feature_names and has_variance.get(f, False)]
+
+    mean_abs = np.abs(shap_values).mean(axis=0)
+    ranked   = [feature_names[i] for i in np.argsort(mean_abs)[::-1]]
+    for f in ranked:
+        if len(selected) >= n_dependence:
+            break
+        if f not in selected and has_variance.get(f, False):
+            selected.append(f)
+    return selected[:n_dependence]
+
+
+def run_explainability_single_model(
+    model,
+    model_name     : str,
+    split          : dict,
+    top_n          : int  = 20,
+    n_waterfall    : int  = 5,
+    n_dependence   : int  = 10,
+    dependence_features: list = None,
+    run_permutation: bool = True,
+) -> np.ndarray:
+    """
+    Run the full SHAP + permutation analysis for ONE fitted model and save
+    every figure into the current _fig_dir() (monkey-patched by the caller to
+    the model's best_configs subfolder).
+
+    Differs from run_explainability() in that it targets a single model and
+    produces more detail: `n_waterfall` waterfalls (default 5) and
+    `n_dependence` dependence plots (default 10, filled by top mean |SHAP|).
+
+    Returns:
+        the SHAP values array for the model (for cross-model comparison).
+    """
+    X_train    = split["X_train_raw"].values   # pre-SMOTE original distribution
+    X_test     = split["X_test"].values if isinstance(split["X_test"], pd.DataFrame) \
+                 else split["X_test"]
+    y_test     = split["y_test"]
+    feat_names = split["feature_cols"]
+
+    print(f"\n[{model_name}] SHAP (best config)")
+    print("    Building explainer...")
+    explainer = build_explainer(model, X_train, feat_names)
+
+    sv = compute_shap_values(
+        explainer, X_test, model_name,
+        # KernelExplainer is O(n * features * background); cap test samples
+        max_samples=300 if not _is_tree(model) else 500,
+    )
+
+    print("    Plotting beeswarm...")
+    plot_beeswarm(sv, X_test, feat_names, model_name, max_display=top_n)
+
+    print("    Plotting bar importance...")
+    plot_bar_importance(sv, feat_names, model_name, top_n=top_n)
+
+    # Waterfalls: first n_waterfall failures in the test set
+    failure_indices = np.where(y_test == 0)[0][:n_waterfall]
+    for i, idx in enumerate(failure_indices):
+        print(f"    Waterfall for failure sample {i+1}/{len(failure_indices)}...")
+        try:
+            plot_waterfall_single(
+                explainer, X_test, feat_names, model_name,
+                sample_idx=int(idx), label=f"failure_{i+1}",
+            )
+        except Exception as e:
+            print(f"    [WARNING] Waterfall failed: {e}")
+
+    # Dependence plots: requested features (variance-filtered) + top mean |SHAP|
+    dep_feats = _select_dependence_features(
+        sv, X_test, feat_names, dependence_features, n_dependence,
+    )
+    for feat in dep_feats:
+        print(f"    Dependence plot: {feat}...")
+        try:
+            plot_dependence(sv, X_test, feat_names, model_name, feat)
+        except Exception as e:
+            print(f"    [WARNING] Dependence failed for {feat}: {e}")
+
+    if run_permutation:
+        print("    Permutation importance...")
+        perm_df = permutation_importance_test(
+            model, X_test, y_test, feat_names, metric="f1", n_repeats=30,
+        )
+        plot_permutation_importance(perm_df, model_name, top_n=top_n)
+
+    return np.array(sv)
+
+
 def run_explainability(
     fitted_models  : dict,
     split          : dict,
@@ -519,7 +673,10 @@ def run_explainability(
             continue
 
         # Compute SHAP values
-        sv = compute_shap_values(explainer, X_test, name)
+        sv = compute_shap_values(
+            explainer, X_test, name,
+            max_samples=300 if not _is_tree(model) else 500,
+        )
         shap_dict[name] = sv
 
         # ── Per-model plots ──
@@ -543,8 +700,12 @@ def run_explainability(
             except Exception as e:
                 print(f"    [WARNING] Waterfall failed: {e}")
 
-        # Dependence plots for key features
-        for feat in dependence_features:
+        # Dependence plots: variance-filtered, no auto interaction colour
+        dep_feats = _select_dependence_features(
+            sv, X_test, feat_names, dependence_features,
+            n_dependence=len(dependence_features),
+        )
+        for feat in dep_feats:
             print(f"    Dependence plot: {feat}...")
             try:
                 plot_dependence(sv, X_test, feat_names, name, feat)
