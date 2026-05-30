@@ -28,7 +28,7 @@ from models.evaluation  import (
     plot_precision_recall_curves, plot_metrics_comparison,
 )
 from models.explainability import run_explainability
-from models.logit import build_logit, classify_feature_cols
+from models.logit import build_logit, classify_feature_cols, run_logit_analysis
 
 
 # ─────────────────────────────────────────────────────────────
@@ -800,6 +800,57 @@ def render_best_configs(
         finally:
             ex_mod._fig_dir = _origs
             plt.close("all")
+
+    # 6. Logit interpretation text reports (one per swept config found in df_all)
+    #    For each distinct (logit_C, logit_penalty) pair that appeared across the
+    #    grid, a labelled plain-English .txt is saved under best_configs/logit/.
+    #    Reports are numbered by descending F1, so "LOGIT 1" is always the winner.
+    if "Logit" in df_all.get("model", pd.Series()).values if hasattr(df_all, "get") else "Logit" in df_all["model"].values:
+        logit_dir = _best_model_dir("logit")
+        logit_rows = df_all[df_all["model"] == "Logit"].copy()
+
+        # Collect distinct (C, penalty) pairs, sorted by F1 descending so
+        # "LOGIT 1" is the best-performing config.
+        c_col   = "logit_C"       if "logit_C"       in logit_rows.columns else None
+        pen_col = "logit_penalty" if "logit_penalty"  in logit_rows.columns else None
+
+        if c_col and pen_col:
+            distinct = (logit_rows
+                        .sort_values("f1", ascending=False)
+                        [[c_col, pen_col, "f1"]]
+                        .drop_duplicates(subset=[c_col, pen_col])
+                        .reset_index(drop=True))
+        else:
+            # No sweep on logit params — use base_cfg values only
+            distinct = pd.DataFrame([{
+                "logit_C":       base_cfg.get("logit_C", 1.0),
+                "logit_penalty": base_cfg.get("logit_penalty", "l2"),
+                "f1": logit_rows["f1"].max() if len(logit_rows) else float("nan"),
+            }])
+
+        best_f1_c   = float(distinct.iloc[0]["logit_C"])
+        best_f1_pen = str(distinct.iloc[0]["logit_penalty"])
+
+        for report_n, row in distinct.iterrows():
+            c_val       = float(row["logit_C"])
+            penalty_val = str(row["logit_penalty"])
+            is_best     = (c_val == best_f1_c and penalty_val == best_f1_pen)
+            label = (
+                f"LOGIT {report_n + 1}"
+                f" - logit_C={c_val}, logit_penalty={penalty_val}"
+                + (" [BEST F1 configuration]" if is_best else "")
+            )
+            print(f"\n  Generating Logit interpretation report ({report_n + 1}/"
+                  f"{len(distinct)}): {label}")
+            try:
+                run_logit_analysis(
+                    save         = True,
+                    verbose      = False,
+                    config_label = label,
+                    out_dir      = logit_dir,
+                )
+            except Exception as e:
+                print(f"    [WARNING] Logit interpretation report failed: {e}")
 
     print(f"\nBest-config figures complete => {best_dir}")
 

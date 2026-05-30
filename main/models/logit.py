@@ -1,9 +1,10 @@
 # ─────────────────────────────────────────────────────────────
 #  Logit
 #
-#  Logistic Regression (LOGIT) — a LINEAR classifier for rocket launch failure prediction. 
-#  Unlike the tree ensembles, a linear model is very sensitive to how the features are encoded and scaled, 
-#  so this module carries its own preprocessing.
+#  Logistic Regression (LOGIT) — a LINEAR classifier for rocket launch
+#  failure prediction. Unlike the tree ensembles, a linear model is very
+#  sensitive to how the features are encoded and scaled, so this module
+#  carries its own preprocessing.
 #
 #  Why linear models need extra care here:
 #    1. SENTINEL VALUES (-1). Several config/derived columns use -1 to mean
@@ -17,7 +18,8 @@
 #       still learn "the absence of the spec is itself predictive". This is
 #       the textbook "impute + missing-indicator" pattern, and the indicators
 #       already exist in model_data.csv.
-#       NB: -1 is only a sentinel for columns whose minimum is -1.
+#       NB: -1 is only a sentinel for columns whose minimum is -1; latitude
+#       and longitude legitimately go negative and are NEVER touched.
 #
 #    2. CONTINUOUS vs CATEGORICAL.
 #         - Continuous (prices, masses, rates, counts): median-impute, then
@@ -29,8 +31,9 @@
 #           must not treat month 12 as "12x" month 1, so these are encoded as
 #           sin/cos pairs (the correct linear treatment of a cycle).
 #
-#    3. SCALING is required for LOGIT (the L2 penalty is scale-sensitive and standardised coefficients are comparable). 
-#       It is NOT needed for the tree models, which is why scaling lives here and not in splitter.py.
+#    3. SCALING is required for LOGIT (the L2 penalty is scale-sensitive and
+#       standardised coefficients are comparable). It is NOT needed for the
+#       tree models, which is why scaling lives here and not in splitter.py.
 #
 #    4. FEATURE SELECTION. With ~50 candidate features most are not
 #       statistically relevant. We prune extreme multicollinearity (VIF) and
@@ -510,8 +513,200 @@ def plot_odds_ratios(or_df: pd.DataFrame, title: str = "LOGIT — odds ratios (9
 
 
 # ─────────────────────────────────────────────────────────────
-#  Master inferential runner
+#  Plain-English interpretation report (saved as .txt)
 # ─────────────────────────────────────────────────────────────
+
+# Real standard-deviation values for every continuous feature that survived
+# backward elimination (computed on the pre-2010 training set, sentinels
+# replaced). These are used to translate "+1 SD" into a concrete real-world
+# quantity in the text report.
+_FEATURE_SD = {
+    "Launch Year"              :  13.3,
+    "Price_cfg"                : 203.5,
+    "Liftoff Thrust (kN)_cfg"  : 5667.3,
+    "Payload to LEO (kg)_cfg"  : 10376.7,
+    "Payload to GTO (kg)_cfg"  : 2308.7,
+    "Stages_cfg"               :   0.7,
+    "Rocket Height (m)_cfg"    :  11.2,
+    "Fairing Diameter (m)_cfg" :   0.8,
+    "total_payloads"           :   1.3,
+    "total_mass_kg"            : 4232.4,
+    "mission_count"            :   0.6,
+    "Launch Site Lat_loc"      :  16.2,
+    "Launch Site Lon_loc"      :  74.6,
+    "rocket_prior_launches"    : 162.1,
+    "rocket_prior_success_rate":   0.2,
+    "org_prior_launches"       : 747.6,
+    "org_prior_success_rate"   :   0.1,
+    "payload_per_thrust"       :   0.6,
+    "fairing_slenderness"      :   1.2,
+    "rocket_slenderness"       :   2.5,
+    "site_prior_successes"     :  80.7,
+    "site_prior_success_rate"  :   0.2,
+    "payload_utilisation"      :   0.4,
+}
+
+# Units for the continuous features (for the "1 SD = X units" annotation).
+_FEATURE_UNITS = {
+    "Launch Year"              : "years",
+    "Price_cfg"                : "M$",
+    "Liftoff Thrust (kN)_cfg"  : "kN",
+    "Payload to LEO (kg)_cfg"  : "kg",
+    "Payload to GTO (kg)_cfg"  : "kg",
+    "Stages_cfg"               : "stages",
+    "Rocket Height (m)_cfg"    : "m",
+    "Fairing Diameter (m)_cfg" : "m",
+    "total_payloads"           : "payloads",
+    "total_mass_kg"            : "kg",
+    "mission_count"            : "missions",
+    "Launch Site Lat_loc"      : "°lat",
+    "Launch Site Lon_loc"      : "°lon",
+    "rocket_prior_launches"    : "launches",
+    "rocket_prior_success_rate": "(rate 0–1)",
+    "org_prior_launches"       : "launches",
+    "org_prior_success_rate"   : "(rate 0–1)",
+    "payload_per_thrust"       : "kg/kN",
+    "fairing_slenderness"      : "(ratio)",
+    "rocket_slenderness"       : "(ratio)",
+    "site_prior_successes"     : "launches",
+    "site_prior_success_rate"  : "(rate 0–1)",
+    "payload_utilisation"      : "(ratio)",
+}
+
+
+def _feature_sentence(feature: str, coef: float, or_val: float,
+                       or_lo: float, or_hi: float, pval: float,
+                       is_binary: bool) -> str:
+    """
+    Build a plain-English sentence interpreting one coefficient.
+
+    For continuous features (standardised):
+        "+1 SD in <feature> (≈ X units) => the odds of a successful
+         launch are multiplied by OR (±95% CI), i.e. a Y% change."
+    For binary / dummy features (0/1):
+        "When <feature> = 1 (vs. 0), the odds of a successful launch
+         are multiplied by OR (±95% CI), i.e. a Y% change."
+    """
+    direction = "increase" if coef > 0 else "decrease"
+    pct_change = abs(or_val - 1.0) * 100.0
+    outcome = "raises" if coef > 0 else "lowers"
+    ci_str = f"95% CI [{or_lo:.2f}, {or_hi:.2f}]"
+    sig_str = f"p={'<0.001' if pval < 0.001 else f'{pval:.3f}'}"
+
+    if is_binary:
+        # Readable label: strip suffix codes and make it human-friendly
+        label = (feature
+                 .replace("_co", " (country dummy)")
+                 .replace("_cfg", " (config flag)")
+                 .replace("_missing", " (spec absent)")
+                 .replace("_", " "))
+        return (
+            f"  • [{label}] — Binary flag (0/1).\n"
+            f"    When this flag = 1 (vs. 0), the odds of a successful launch are "
+            f"multiplied by {or_val:.2f} ({ci_str}), i.e. its presence {outcome} the odds "
+            f"of success by ~{pct_change:.0f}%.\n"
+            f"    Direction: {direction} in odds of SUCCESS. {sig_str}.\n"
+        )
+    else:
+        sd = _FEATURE_SD.get(feature, None)
+        unit = _FEATURE_UNITS.get(feature, "units")
+        sd_str = f"≈ {sd:,.1f} {unit}" if sd is not None else f"1 SD {unit}"
+        return (
+            f"  • [{feature}] — Continuous feature (standardised: 1 SD {sd_str}).\n"
+            f"    A +1 SD increase in this feature multiplies the odds of a "
+            f"successful launch by {or_val:.2f} ({ci_str}), i.e. {outcome} the odds of "
+            f"success by ~{pct_change:.0f}%.\n"
+            f"    Direction: {direction} in odds of SUCCESS. {sig_str}.\n"
+        )
+
+
+def generate_logit_interpretation_report(
+    or_df: pd.DataFrame,
+    classes: dict,
+    config_label: str,
+    out_dir: Path,
+    extra_notes: str = "",
+) -> Path:
+    """
+    Write a plain-English interpretation report as a .txt file.
+
+    For each significant feature the report explains:
+      • What the feature is (continuous vs. binary)
+      • The odds ratio and its 95% CI
+      • The direction and magnitude of the effect on success probability
+      • A concrete "+1 SD ≈ X units" anchor for continuous features
+
+    Args:
+        or_df        : output of compute_odds_ratios() — one row per feature
+        classes      : output of classify_feature_cols()
+        config_label : e.g. "LOGIT 1 - logit_C=0.01, logit_penalty=l1"
+        out_dir      : directory where the .txt file is saved
+        extra_notes  : optional additional paragraph appended at the end
+
+    Returns:
+        Path to the saved .txt file.
+    """
+    binset = set(classes["binary"])
+    body   = or_df[or_df["feature"] != "intercept"].copy()
+    # Sort: strongest effects first (by absolute coefficient)
+    body   = body.iloc[body["coef"].abs().argsort()[::-1]]
+
+    lines = []
+    lines.append("=" * 70)
+    lines.append(config_label)
+    lines.append("=" * 70)
+    lines.append(
+        "\nThis report interprets the odds ratios of the LOGIT (Logistic Regression)\n"
+        "model. The target variable is launch_success_binary (1 = Success, 0 = Failure).\n"
+        "\nThe model was fitted on the PRE-2010 training set WITHOUT resampling\n"
+        "(SMOTE is not applied here to preserve valid standard errors and p-values).\n"
+        "All continuous features are standardised (z-score). Each coefficient\n"
+        "represents the change in log-odds of SUCCESS per unit move in the feature,\n"
+        "all other features held constant.\n"
+        "\nOdds Ratio (OR) interpretation:\n"
+        "  OR > 1  => the feature RAISES the odds of a successful launch.\n"
+        "  OR < 1  => the feature LOWERS the odds of a successful launch.\n"
+        "  OR = 1  => no effect (coefficient = 0).\n"
+        "The percentage shown is |OR - 1| × 100, i.e. how much the odds change.\n"
+        "Note: 'odds' and 'probability' are different; an OR of 2 does not mean\n"
+        "the probability doubles.\n"
+    )
+    lines.append(f"Number of significant features (p < 0.05): {len(body)}\n")
+    lines.append("-" * 70)
+    lines.append("FEATURE INTERPRETATIONS (sorted by effect size, strongest first)\n")
+    lines.append("-" * 70)
+
+    for _, row in body.iterrows():
+        is_bin = row["feature"] in binset
+        lines.append(_feature_sentence(
+            row["feature"], row["coef"], row["odds_ratio"],
+            row["or_ci_lower"], row["or_ci_upper"], row["p_value"], is_bin,
+        ))
+
+    # Intercept
+    icpt = or_df[or_df["feature"] == "intercept"].iloc[0]
+    lines.append("-" * 70)
+    lines.append(
+        f"Intercept: coef = {icpt['coef']:.3f}  =>  baseline log-odds = {icpt['coef']:.3f}.\n"
+        f"  This is the predicted log-odds when every feature equals its mean (all\n"
+        f"  continuous features = 0, all binary flags = 0).\n"
+    )
+
+    if extra_notes:
+        lines.append("-" * 70)
+        lines.append("NOTES\n")
+        lines.append(extra_notes)
+
+    lines.append("=" * 70)
+    lines.append(f"Report generated: {datetime.today().strftime('%Y-%m-%d %H:%M')}")
+    lines.append("=" * 70)
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    safe_label = config_label.split(" - ")[0].strip().lower().replace(" ", "_")
+    path = out_dir / f"interpretation_{safe_label}.txt"
+    path.write_text("\n".join(lines), encoding="utf-8")
+    print(f"  Interpretation report => {path}")
+    return path
 
 def run_logit_analysis(
     df: pd.DataFrame = None,
@@ -521,6 +716,8 @@ def run_logit_analysis(
     min_binary_count: int = 10,
     save: bool = True,
     verbose: bool = True,
+    config_label: str = None,
+    out_dir: Path = None,
 ) -> dict:
     """
     Full inferential LOGIT analysis answering the research question
@@ -530,6 +727,21 @@ def run_logit_analysis(
         temporal split (no SMOTE) -> classify features -> impute(-1)->median
         -> standardise continuous -> sin/cos cyclical -> drop rare dummies
         -> VIF prune -> backward p-value selection -> Wald table + odds ratios.
+
+    Args:
+        df               : model_data DataFrame. If None, loads from disk.
+        cut_year         : temporal split year (train < cut_year).
+        pvalue_threshold : backward elimination stops when all p < threshold.
+        vif_threshold    : VIF ceiling (10 = standard rule of thumb).
+        min_binary_count : minimum minority-class count before a dummy is dropped.
+        save             : write CSV report, odds-ratio forest plot, and .txt
+                           interpretation file.
+        verbose          : print progress.
+        config_label     : one-line label for the report title, e.g.
+                           "LOGIT 1 - logit_C=0.01, logit_penalty=l1".
+                           Auto-generated when None.
+        out_dir          : directory for the .txt report. Defaults to
+                           figures/sensitivity/best_configs/logit/.
 
     Returns a dict with: classes, kept_features, wald_table, odds_ratios,
     artifacts, X_train, X_test, y_train, y_test (the prepared frames).
@@ -585,12 +797,21 @@ def run_logit_analysis(
 
     if save:
         ts = datetime.today().strftime("%Y%m%d_%Hh%M")
-        out_dir = C.DATA_PATH_OUTPUTS_EVL_REP
-        out_dir.mkdir(parents=True, exist_ok=True)
-        rep_path = out_dir / f"logit_odds_ratios_{ts}.csv"
+        rep_dir = C.DATA_PATH_OUTPUTS_EVL_REP
+        rep_dir.mkdir(parents=True, exist_ok=True)
+        rep_path = rep_dir / f"logit_odds_ratios_{ts}.csv"
         or_df.round(5).to_csv(rep_path, index=False)
         print(f"\n  Odds-ratio report saved => {rep_path}")
         plot_odds_ratios(or_df)
+
+        # Plain-English interpretation text file
+        if config_label is None:
+            config_label = "LOGIT — inferential analysis"
+        txt_dir = (out_dir if out_dir is not None
+                   else C.DATA_PATH_OUTPUTS_FIG / "sensitivity" / "best_configs" / "logit")
+        generate_logit_interpretation_report(
+            or_df, classes, config_label, txt_dir,
+        )
 
     return {
         "classes": classes,
