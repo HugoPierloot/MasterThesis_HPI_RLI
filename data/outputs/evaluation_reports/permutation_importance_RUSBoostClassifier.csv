@@ -1,6 +1,6 @@
 feature,mean_drop,std_drop,ci_lower,ci_upper,significant
-site_prior_successes,0.0122,0.0025,0.0113,0.0131,True
-org_prior_success_rate,0.0008,0.0015,0.0003,0.0013,True
+site_prior_successes,0.0183,0.0029,0.0173,0.0193,True
+org_prior_success_rate,0.003,0.0015,0.0025,0.0036,True
 Launch Year,0.0,0.0,0.0,0.0,False
 Price_cfg,0.0,0.0,0.0,0.0,False
 Payload to GTO (kg)_cfg,0.0,0.0,0.0,0.0,False
@@ -41,17 +41,17 @@ mission_data_missing,0.0,0.0,0.0,0.0,False
 Price_cfg_missing,0.0,0.0,0.0,0.0,False
 launch_month,0.0,0.0,0.0,0.0,False
 launch_hour,0.0,0.0,0.0,0.0,False
-rocket_is_maiden_flight,0.0,0.0,0.0,0.0,False
+rocket_prior_success_rate,0.0,0.0,0.0,0.0,False
 era_commercial,0.0,0.0,0.0,0.0,False
-org_is_first_launch,0.0,0.0,0.0,0.0,False
+rocket_is_maiden_flight,0.0,0.0,0.0,0.0,False
 org_prior_launches,0.0,0.0,0.0,0.0,False
-payload_per_thrust,0.0,0.0,0.0,0.0,False
+org_is_first_launch,0.0,0.0,0.0,0.0,False
 rocket_prior_launches,0.0,0.0,0.0,0.0,False
-has_strap_ons,0.0,0.0,0.0,0.0,False
+payload_per_thrust,0.0,0.0,0.0,0.0,False
 fairing_slenderness,0.0,0.0,0.0,0.0,False
 is_multistage,0.0,0.0,0.0,0.0,False
 rocket_slenderness,0.0,0.0,0.0,0.0,False
-payload_utilisation,0.0,0.0,0.0,0.0,False
+has_strap_ons,0.0,0.0,0.0,0.0,False
 site_prior_success_rate,0.0,0.0,0.0,0.0,False
+payload_utilisation,0.0,0.0,0.0,0.0,False
 is_multi_payload,0.0,0.0,0.0,0.0,False
-rocket_prior_success_rate,-0.0001,0.0012,-0.0005,0.0004,False

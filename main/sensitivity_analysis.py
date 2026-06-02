@@ -29,6 +29,8 @@ from models.evaluation  import (
 )
 from models.explainability import run_explainability
 from models.logit import build_logit, classify_feature_cols, run_logit_analysis
+from models.svm import build_svm, run_svm_interpretation
+from models.mlp import build_mlp, run_mlp_interpretation
 
 
 # ─────────────────────────────────────────────────────────────
@@ -69,6 +71,17 @@ ONE_SHOT_CONFIG = {
     "logit_C"           : 1.0,     # inverse L2 regularisation (smaller = stronger)
     "logit_penalty"     : "l2",    # 'l2', 'l1', or 'none'
 
+    # SVM (support vector machine)
+    "svm_C"             : 1.0,     # regularisation (smaller = wider margin)
+    "svm_kernel"        : "rbf",   # 'rbf', 'linear', 'poly', 'sigmoid'
+    "svm_gamma"         : "scale", # kernel coefficient ('scale'/'auto'/float)
+
+    # MLP (multi-layer perceptron / neural network)
+    "mlp_hidden_layer_sizes" : (64, 32),  # tuple of hidden-layer widths
+    "mlp_alpha"              : 1e-3,       # L2 regularisation strength
+    "mlp_learning_rate_init" : 1e-3,       # initial adam learning rate
+    "mlp_activation"         : "relu",     # 'relu', 'tanh', 'logistic'
+
     # SHAP
     "shap_dependence_features": [
         "rocket_prior_launches",
@@ -98,6 +111,12 @@ SENSITIVITY_GRID = {
 # ─────────────────────────────────────────────────────────────
 
 MODEL_PARAM_KEYS = {
+    # Baselines have NO hyper-parameters of their own. Their predictions depend
+    # only on the split composition plus the decision threshold (a constant-
+    # probability classifier can flip when the threshold crosses its prior),
+    # so they are re-run only when one of those changes — typically just run000.
+    "Baseline_Majority":  {"cut_year", "apply_smote", "smote_strategy", "threshold"},
+    "Baseline_PriorRate": {"cut_year", "apply_smote", "smote_strategy", "threshold"},
     "RandomForest": {"rf_n_estimators", "rf_max_depth", "rf_min_samples_leaf",
                      "smote_strategy", "threshold", "cut_year", "apply_smote"},
     "XGBoost":      {"xgb_n_estimators", "xgb_max_depth", "xgb_learning_rate",
@@ -109,6 +128,11 @@ MODEL_PARAM_KEYS = {
                      "smote_strategy", "threshold", "cut_year", "apply_smote"},
     "Logit":        {"logit_C", "logit_penalty",
                      "smote_strategy", "threshold", "cut_year", "apply_smote"},
+    "SVM":          {"svm_C", "svm_kernel", "svm_gamma",
+                     "smote_strategy", "threshold", "cut_year", "apply_smote"},
+    "MLP":          {"mlp_hidden_layer_sizes", "mlp_alpha",
+                     "mlp_learning_rate_init", "mlp_activation",
+                     "smote_strategy", "threshold", "cut_year", "apply_smote"},
 }
 
 # Type coercion sets for reconstructing a config from a saved best-row.
@@ -119,6 +143,7 @@ _INT_PARAMS = {
 _FLOAT_PARAMS = {
     "smote_strategy", "threshold", "xgb_learning_rate", "xgb_subsample",
     "ada_learning_rate", "rus_learning_rate", "xgb_scale_pos_weight",
+    "logit_C", "svm_C", "mlp_alpha", "mlp_learning_rate_init",
 }
 _BOOL_PARAMS = {"apply_smote"}
 
@@ -147,6 +172,18 @@ def _best_model_dir(model_name: str) -> Path:
 
 def _best_model_shap_dir(model_name: str) -> Path:
     p = _best_model_dir(model_name) / "shap"
+    p.mkdir(parents=True, exist_ok=True)
+    return p
+
+def _model_dir_under(parent: Path, model_name: str) -> Path:
+    """<parent>/<model_name_lower>/ — model subfolder under an arbitrary parent."""
+    p = Path(parent) / model_name.lower()
+    p.mkdir(parents=True, exist_ok=True)
+    return p
+
+def _model_shap_dir_under(parent: Path, model_name: str) -> Path:
+    """<parent>/<model_name_lower>/shap/ — SHAP subfolder under an arbitrary parent."""
+    p = _model_dir_under(parent, model_name) / "shap"
     p.mkdir(parents=True, exist_ok=True)
     return p
 
@@ -251,6 +288,25 @@ def _build_models(
             penalty      = cfg.get("logit_penalty", "l2"),
             random_state = random_state,
         )
+        # SVM shares the same preprocessing requirements as Logit
+        models["SVM"] = build_svm(
+            feature_cols = feature_cols,
+            classes      = classes,
+            C_reg        = cfg.get("svm_C", 1.0),
+            kernel       = cfg.get("svm_kernel", "rbf"),
+            gamma        = cfg.get("svm_gamma", "scale"),
+            random_state = random_state,
+        )
+        # MLP shares the same preprocessing requirements as Logit / SVM
+        models["MLP"] = build_mlp(
+            feature_cols       = feature_cols,
+            classes            = classes,
+            hidden_layer_sizes = cfg.get("mlp_hidden_layer_sizes", (64, 32)),
+            alpha              = cfg.get("mlp_alpha", 1e-3),
+            learning_rate_init = cfg.get("mlp_learning_rate_init", 1e-3),
+            activation         = cfg.get("mlp_activation", "relu"),
+            random_state       = random_state,
+        )
 
     return models
 
@@ -316,19 +372,19 @@ def run_single(
     models = _build_models(cfg, feature_cols, col_classes, random_state)
     models["XGBoost"].set_params(scale_pos_weight=float(ir))
 
-    # Only train models flagged as needing a fresh run for this config.	
-    run_for = cfg.get("_run_for_models", None) 
+    # Only train models flagged as needing a fresh run for this config.
+    # Baselines are now included in the tag (they depend only on the split +
+    # threshold), so they are trained once for the first distinct split and
+    # skipped thereafter rather than re-run on every grid configuration.
+    run_for = cfg.get("_run_for_models", None)
 
     fitted_models = {}
     for name, model in models.items():
         is_baseline = "Baseline" in name
-        if run_for is not None and not is_baseline:
-            # Extract base model name ("RandomForest", "XGBoost", etc.)
-            base_name = name.replace("Baseline_Majority","").replace("Baseline_PriorRate","")
-            if name not in run_for:
-                if verbose:
-                    print(f"  Skipping {name} (params unchanged for this run)")
-                continue 
+        if run_for is not None and name not in run_for:
+            if verbose:
+                print(f"  Skipping {name} (params unchanged for this run)")
+            continue
         if verbose:
             print(f"  Training {name}...", end=" ", flush=True)
         if is_baseline:
@@ -592,6 +648,15 @@ def _cfg_from_best_row(row: pd.Series, base_cfg: dict) -> dict:
             cfg[k] = float(v)
         elif k in _BOOL_PARAMS:
             cfg[k] = bool(v)
+        elif k == "mlp_hidden_layer_sizes" and isinstance(v, str):
+            # Tuple survives in-memory but round-trips through CSV as a string
+            # like "(64, 32)" — parse it back to a tuple of ints.
+            try:
+                import ast as _ast
+                parsed = _ast.literal_eval(v)
+                cfg[k] = tuple(parsed) if isinstance(parsed, (tuple, list)) else (int(parsed),)
+            except (ValueError, SyntaxError):
+                pass  # keep base_cfg default
         else:
             cfg[k] = v
     return cfg
@@ -750,7 +815,11 @@ def render_best_configs(
     _plot_roc_best(trained, best_dir)
     _plot_pr_best(trained, best_dir)
 
-    # 4. Per-model: confusion matrix + SHAP
+    # 4. Per-model: confusion matrix + interpretation
+    #    SHAP is meaningful only for the tree models (TreeExplainer). The linear
+    #    family is interpreted differently: LOGIT via odds ratios (section 6),
+    #    SVM via permutation importance + linear weights (handled here).
+    SHAP_MODELS = {"RandomForest", "XGBoost", "AdaBoost", "RUSBoost"}
     shap_dict  = {}
     feat_names = None
     for model_name, (model, split, threshold) in trained.items():
@@ -766,7 +835,7 @@ def render_best_configs(
             ev_mod._get_fig_dir = _orig
             plt.close("all")
 
-        if run_shap:
+        if run_shap and model_name in SHAP_MODELS:
             sdir = _best_model_shap_dir(model_name)
             _origs = ex_mod._fig_dir
             ex_mod._fig_dir = lambda d=sdir: d
@@ -788,6 +857,59 @@ def render_best_configs(
             finally:
                 ex_mod._fig_dir = _origs
                 plt.close("all")
+
+        # SVM interpretation: permutation importance (any kernel) + linear weights
+        if model_name == "SVM":
+            try:
+                feature_cols = split["feature_cols"]
+                col_classes  = classify_feature_cols(split["df_train"], feature_cols)
+                # Build a descriptive label from the best SVM row
+                svm_row = best.loc["SVM"] if "SVM" in best.index else {}
+                svm_c   = svm_row.get("svm_C", base_cfg.get("svm_C", 1.0)) if hasattr(svm_row, "get") else base_cfg.get("svm_C", 1.0)
+                svm_k   = svm_row.get("svm_kernel", base_cfg.get("svm_kernel", "rbf")) if hasattr(svm_row, "get") else base_cfg.get("svm_kernel", "rbf")
+                svm_label = (f"SVM (best F1 config) - svm_C={svm_c}, "
+                             f"svm_kernel={svm_k}")
+                run_svm_interpretation(
+                    pipeline     = model,
+                    split        = split,
+                    classes      = col_classes,
+                    model_name   = "SVM",
+                    top_n        = 20,
+                    n_repeats    = 10,
+                    out_dir      = mdir,
+                    config_label = svm_label,
+                    verbose      = verbose,
+                )
+            except Exception as e:
+                print(f"    [WARNING] SVM interpretation failed: {e}")
+
+        # MLP interpretation: permutation importance + directional sensitivity probe
+        if model_name == "MLP":
+            try:
+                feature_cols = split["feature_cols"]
+                col_classes  = classify_feature_cols(split["df_train"], feature_cols)
+                mlp_row = best.loc["MLP"] if "MLP" in best.index else {}
+                mlp_h = (mlp_row.get("mlp_hidden_layer_sizes",
+                                     base_cfg.get("mlp_hidden_layer_sizes", (64, 32)))
+                         if hasattr(mlp_row, "get")
+                         else base_cfg.get("mlp_hidden_layer_sizes", (64, 32)))
+                mlp_a = (mlp_row.get("mlp_alpha", base_cfg.get("mlp_alpha", 1e-3))
+                         if hasattr(mlp_row, "get")
+                         else base_cfg.get("mlp_alpha", 1e-3))
+                mlp_label = (f"MLP (best F1 config) - hidden={mlp_h}, alpha={mlp_a}")
+                run_mlp_interpretation(
+                    pipeline     = model,
+                    split        = split,
+                    classes      = col_classes,
+                    model_name   = "MLP",
+                    top_n        = 20,
+                    n_repeats    = 10,
+                    out_dir      = mdir,
+                    config_label = mlp_label,
+                    verbose      = verbose,
+                )
+            except Exception as e:
+                print(f"    [WARNING] MLP interpretation failed: {e}")
 
     # 5. Cross-model SHAP comparison + report into best_configs/
     if run_shap and len(shap_dict) >= 2 and feat_names is not None:
@@ -853,6 +975,312 @@ def render_best_configs(
                 print(f"    [WARNING] Logit interpretation report failed: {e}")
 
     print(f"\nBest-config figures complete => {best_dir}")
+
+
+# ─────────────────────────────────────────────────────────────
+#  Per-model explicit configurations (one config per model + SHAP)
+# ─────────────────────────────────────────────────────────────
+
+# Canonical model-name resolver so callers can be a bit loose with casing.
+_MODEL_NAME_ALIASES = {
+    "randomforest": "RandomForest", "rf": "RandomForest", "random_forest": "RandomForest",
+    "xgboost": "XGBoost", "xgb": "XGBoost",
+    "adaboost": "AdaBoost", "ada": "AdaBoost",
+    "rusboost": "RUSBoost", "rus": "RUSBoost",
+    "logit": "Logit", "logisticregression": "Logit", "lr": "Logit",
+    "svm": "SVM", "svc": "SVM",
+    "mlp": "MLP", "neuralnetwork": "MLP", "nn": "MLP",
+}
+
+# Models that are interpreted with SHAP (the rest have dedicated runners).
+_SHAP_MODELS = {"RandomForest", "XGBoost", "AdaBoost", "RUSBoost"}
+
+
+def _resolve_model_name(name: str) -> str:
+    """Map a user-supplied model key to its canonical name (raises if unknown)."""
+    key = str(name).strip().lower().replace(" ", "").replace("-", "")
+    if key in _MODEL_NAME_ALIASES:
+        return _MODEL_NAME_ALIASES[key]
+    # already canonical?
+    for canon in list(MODEL_PARAM_KEYS.keys()) + ["RandomForest", "XGBoost",
+                                                  "AdaBoost", "RUSBoost",
+                                                  "Logit", "SVM", "MLP"]:
+        if key == canon.lower():
+            return canon
+    raise ValueError(
+        f"Unknown model '{name}'. Valid models: RandomForest, XGBoost, "
+        f"AdaBoost, RUSBoost, Logit, SVM, MLP."
+    )
+
+
+def run_per_model_configs(
+    model_configs: dict,
+    parent_dir=None,
+    run_shap: bool = True,
+    save_report: bool = True,
+    random_state: int = 42,
+    verbose: bool = True,
+) -> dict:
+    """
+    Run each model ONCE with its own explicit configuration, then produce the
+    full interpretation for each (SHAP for the tree models; odds-ratio /
+    permutation / sensitivity reports for Logit / SVM / MLP).
+
+    This is the per-model analogue of run_sensitivity: instead of sweeping a
+    grid of parameter lists, the caller passes a dict of dicts mapping each
+    model to a single, explicit configuration.
+
+    Args:
+        model_configs : {model_name: {param_name: value, ...}, ...}
+            e.g. {
+                "XGBoost"     : {"xgb_n_estimators": 300, "xgb_max_depth": 6},
+                "RandomForest": {"rf_n_estimators": 400, "rf_max_depth": 10},
+                "Logit"       : {"logit_C": 0.1, "logit_penalty": "l1"},
+                "SVM"         : {"svm_C": 1.0, "svm_kernel": "linear"},
+                "MLP"         : {"mlp_hidden_layer_sizes": (64, 32), "mlp_alpha": 1e-3},
+            }
+            Only the params you want to override need to be listed; every other
+            parameter falls back to ONE_SHOT_CONFIG. Split-level keys
+            (cut_year, apply_smote, smote_strategy, threshold) may also be set
+            per model. Model names are case-insensitive (aliases accepted).
+
+        parent_dir : root folder for the outputs. Each model writes to
+            <parent_dir>/<model_name>/ and its SHAP/interpretation to
+            <parent_dir>/<model_name>/shap/.
+            Defaults to figures/sensitivity/best_configs/ (same place
+            render_best_configs uses), so results sit beside the grid outputs.
+            Pass a different path to keep a test run separate.
+
+        run_shap    : run SHAP / interpretation for each model (default True).
+        save_report : also write a metrics CSV + comparison chart across the
+            models that were run, into parent_dir (default True).
+        random_state: seed.
+        verbose     : print progress.
+
+    Returns:
+        dict with keys:
+            results       : list of metric dicts (one per model)
+            df_report     : DataFrame comparing the models
+            fitted_models : {model_name: fitted estimator}
+            splits        : {model_name: split dict}
+            parent_dir    : the Path used
+    """
+    import models.evaluation as ev_mod
+    import models.explainability as ex_mod
+
+    if not model_configs:
+        raise ValueError("model_configs is empty - pass {model_name: {param: value}}.")
+
+    parent = Path(parent_dir) if parent_dir is not None else _best_configs_dir()
+    parent.mkdir(parents=True, exist_ok=True)
+
+    print(f"\n{'='*60}")
+    print("PER-MODEL EXPLICIT CONFIGURATIONS")
+    print(f"  Models   : {list(model_configs.keys())}")
+    print(f"  Output   : {parent}")
+    print(f"  SHAP     : {run_shap}")
+    print(f"{'='*60}")
+
+    results       = []
+    fitted_models = {}
+    splits        = {}
+    shap_dict     = {}
+    feat_names    = None
+
+    for raw_name, overrides in model_configs.items():
+        model_name = _resolve_model_name(raw_name)
+        cfg = deepcopy(ONE_SHOT_CONFIG)
+        cfg.update(overrides or {})
+
+        if verbose:
+            print(f"\n--- {model_name} ---")
+            shown = {k: v for k, v in (overrides or {}).items()}
+            print(f"  Config overrides: {shown}")
+            print(f"  Training...", end=" ", flush=True)
+
+        # 1. Train just this model on its own split/config
+        try:
+            model, split = _train_one(model_name, cfg, random_state)
+        except Exception as e:
+            print(f"\n  [ERROR] Could not train {model_name}: {e}")
+            continue
+        if verbose:
+            print("done")
+
+        threshold = cfg.get("threshold", 0.5)
+        fitted_models[model_name] = model
+        splits[model_name] = split
+
+        # 2. Evaluate
+        X_test, y_test = split["X_test"], split["y_test"]
+        m = evaluate_model(model, X_test, y_test,
+                           model_name=model_name, threshold=threshold)
+        m["threshold"] = threshold
+        skip_keys = {"_run_for_models", "shap_dependence_features",
+                     "shap_waterfall_cases"}
+        for k, v in cfg.items():
+            if k not in skip_keys:
+                m[k] = v
+        results.append(m)
+
+        mdir = _model_dir_under(parent, model_name)
+
+        # 3. Confusion matrix (into the model's own folder)
+        _orig = ev_mod._get_fig_dir
+        ev_mod._get_fig_dir = lambda d=mdir: d
+        try:
+            plot_confusion_matrix(model, X_test, y_test,
+                                  model_name=model_name, threshold=threshold)
+        finally:
+            ev_mod._get_fig_dir = _orig
+            plt.close("all")
+
+        if not run_shap:
+            continue
+
+        # 4. Interpretation, dispatched by model family
+        feature_cols = split["feature_cols"]
+        col_classes  = classify_feature_cols(split["df_train"], feature_cols)
+
+        # 4a. Tree models -> SHAP into <parent>/<model>/shap/
+        if model_name in _SHAP_MODELS:
+            sdir = _model_shap_dir_under(parent, model_name)
+            _origs = ex_mod._fig_dir
+            ex_mod._fig_dir = lambda d=sdir: d
+            try:
+                if verbose:
+                    print(f"  SHAP -> {sdir}")
+                sv = ex_mod.run_explainability_single_model(
+                    model               = model,
+                    model_name          = model_name,
+                    split               = split,
+                    top_n               = 20,
+                    n_waterfall         = 5,
+                    n_dependence        = 10,
+                    dependence_features = cfg.get("shap_dependence_features", []),
+                    run_permutation     = True,
+                )
+                shap_dict[model_name] = sv
+                feat_names = feature_cols
+            except Exception as e:
+                print(f"    [WARNING] SHAP failed for {model_name}: {e}")
+            finally:
+                ex_mod._fig_dir = _origs
+                plt.close("all")
+
+        # 4b. Logit -> odds-ratio report into <parent>/<model>/shap/
+        elif model_name == "Logit":
+            sdir = _model_shap_dir_under(parent, model_name)
+            label = (f"LOGIT (explicit config) - "
+                     f"logit_C={cfg.get('logit_C')}, "
+                     f"logit_penalty={cfg.get('logit_penalty')}")
+            try:
+                if verbose:
+                    print(f"  Odds-ratio interpretation -> {sdir}")
+                run_logit_analysis(
+                    cut_year     = cfg.get("cut_year", 2010),
+                    save         = True,
+                    verbose      = False,
+                    config_label = label,
+                    out_dir      = sdir,
+                )
+            except Exception as e:
+                print(f"    [WARNING] Logit interpretation failed: {e}")
+
+        # 4c. SVM -> permutation importance / linear weights into shap dir
+        elif model_name == "SVM":
+            sdir = _model_shap_dir_under(parent, model_name)
+            label = (f"SVM (explicit config) - svm_C={cfg.get('svm_C')}, "
+                     f"svm_kernel={cfg.get('svm_kernel')}")
+            try:
+                if verbose:
+                    print(f"  SVM interpretation -> {sdir}")
+                run_svm_interpretation(
+                    pipeline     = model,
+                    split        = split,
+                    classes      = col_classes,
+                    model_name   = "SVM",
+                    top_n        = 20,
+                    n_repeats    = 10,
+                    out_dir      = sdir,
+                    config_label = label,
+                    verbose      = verbose,
+                )
+            except Exception as e:
+                print(f"    [WARNING] SVM interpretation failed: {e}")
+
+        # 4d. MLP -> permutation importance / directional probe into shap dir
+        elif model_name == "MLP":
+            sdir = _model_shap_dir_under(parent, model_name)
+            label = (f"MLP (explicit config) - "
+                     f"hidden={cfg.get('mlp_hidden_layer_sizes')}, "
+                     f"alpha={cfg.get('mlp_alpha')}")
+            try:
+                if verbose:
+                    print(f"  MLP interpretation -> {sdir}")
+                run_mlp_interpretation(
+                    pipeline     = model,
+                    split        = split,
+                    classes      = col_classes,
+                    model_name   = "MLP",
+                    top_n        = 20,
+                    n_repeats    = 10,
+                    out_dir      = sdir,
+                    config_label = label,
+                    verbose      = verbose,
+                )
+            except Exception as e:
+                print(f"    [WARNING] MLP interpretation failed: {e}")
+
+    # 5. Comparison report across the models that ran
+    df_report = None
+    if results:
+        df_report = build_comparison_report(results)
+        if verbose:
+            disp = [c for c in ["precision", "recall", "f1", "f2", "auc_pr", "mcc"]
+                    if c in df_report.columns]
+            print(f"\n{'='*60}")
+            print("PER-MODEL RESULTS")
+            print(f"{'='*60}")
+            print(df_report[disp].round(3).to_string())
+
+        if save_report:
+            ts = datetime.today().strftime("%Y%m%d_%Hh%M")
+            csv_path = parent / f"per_model_configs_{ts}.csv"
+            df_report.to_csv(csv_path)
+            print(f"\n  Metrics CSV => {csv_path}")
+
+            # Metrics comparison chart into parent (if >=2 models)
+            if len(df_report) >= 2:
+                _orig = ev_mod._get_fig_dir
+                ev_mod._get_fig_dir = lambda d=parent: d
+                try:
+                    plot_metrics_comparison(df_report)
+                finally:
+                    ev_mod._get_fig_dir = _orig
+                    plt.close("all")
+
+            # Cross-model SHAP importance comparison (tree models only)
+            if run_shap and len(shap_dict) >= 2 and feat_names is not None:
+                _origs = ex_mod._fig_dir
+                ex_mod._fig_dir = lambda d=parent: d
+                try:
+                    ex_mod.plot_feature_importance_comparison(
+                        shap_dict, feat_names, top_n=20)
+                except Exception as e:
+                    print(f"    [WARNING] SHAP comparison failed: {e}")
+                finally:
+                    ex_mod._fig_dir = _origs
+                    plt.close("all")
+
+    print(f"\nPer-model configurations complete => {parent}")
+    return {
+        "results": results,
+        "df_report": df_report,
+        "fitted_models": fitted_models,
+        "splits": splits,
+        "parent_dir": parent,
+    }
 
 
 # ─────────────────────────────────────────────────────────────

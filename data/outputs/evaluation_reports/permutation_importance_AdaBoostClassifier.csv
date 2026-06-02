@@ -1,12 +1,12 @@
 feature,mean_drop,std_drop,ci_lower,ci_upper,significant
-site_prior_successes,0.0198,0.0038,0.0184,0.0211,True
-rocket_prior_success_rate,0.0055,0.0022,0.0047,0.0063,True
-site_prior_success_rate,0.0037,0.0007,0.0035,0.004,True
-Price_cfg_missing,0.0002,0.0003,0.0001,0.0003,True
-rocket_is_maiden_flight,0.0001,0.0014,-0.0004,0.0006,False
+site_prior_successes,0.0222,0.0037,0.0209,0.0236,True
+site_prior_success_rate,0.0044,0.0011,0.004,0.0048,True
+rocket_prior_success_rate,0.0012,0.0021,0.0004,0.0019,True
+rocket_is_maiden_flight,0.0003,0.001,-0.0,0.0007,False
 Launch Year,0.0,0.0,0.0,0.0,False
-Liftoff Thrust (kN)_cfg,0.0,0.0,0.0,0.0,False
 Price_cfg,0.0,0.0,0.0,0.0,False
+Liftoff Thrust (kN)_cfg,0.0,0.0,0.0,0.0,False
+Payload to LEO (kg)_cfg,0.0,0.0,0.0,0.0,False
 status_Active_cfg,0.0,0.0,0.0,0.0,False
 Company Country_Brazil_co,0.0,0.0,0.0,0.0,False
 Company Country_China_co,0.0,0.0,0.0,0.0,False
@@ -18,7 +18,7 @@ Company Country_Iran_co,0.0,0.0,0.0,0.0,False
 Company Country_Israel_co,0.0,0.0,0.0,0.0,False
 Company Country_Italy_co,0.0,0.0,0.0,0.0,False
 Company Country_Japan_co,0.0,0.0,0.0,0.0,False
-Payload to LEO (kg)_cfg,0.0,0.0,0.0,0.0,False
+Company Country_Multi_co,0.0,0.0,0.0,0.0,False
 Payload to GTO (kg)_cfg,0.0,0.0,0.0,0.0,False
 Stages_cfg,0.0,0.0,0.0,0.0,False
 Rocket Height (m)_cfg,0.0,0.0,0.0,0.0,False
@@ -27,17 +27,17 @@ Company Country_USA_co,0.0,0.0,0.0,0.0,False
 Company Country_South Korea_co,0.0,0.0,0.0,0.0,False
 Company Country_Russia_co,0.0,0.0,0.0,0.0,False
 Company Country_North Korea_co,0.0,0.0,0.0,0.0,False
-Company Country_Multi_co,0.0,0.0,0.0,0.0,False
 Ownership_Private_co,0.0,0.0,0.0,0.0,False
-mission_count,0.0,0.0,0.0,0.0,False
 total_payloads,0.0,0.0,0.0,0.0,False
+mission_count,0.0,0.0,0.0,0.0,False
+Launch Site Lat_loc,0.0,0.0,0.0,0.0,False
 Fairing_Diameter_m_cfg_missing,0.0,0.0,0.0,0.0,False
 Payload_to_LEO_kg_cfg_missing,0.0,0.0,0.0,0.0,False
 Payload_to_GTO_kg_cfg_missing,0.0,0.0,0.0,0.0,False
 Rocket_Height_m_cfg_missing,0.0,0.0,0.0,0.0,False
-Launch Site Lon_loc,0.0,0.0,0.0,0.0,False
-Launch Site Lat_loc,0.0,0.0,0.0,0.0,False
 mission_data_missing,0.0,0.0,0.0,0.0,False
+Launch Site Lon_loc,0.0,0.0,0.0,0.0,False
+Price_cfg_missing,0.0,0.0,0.0,0.0,False
 Liftoff_Thrust_kN_cfg_missing,0.0,0.0,0.0,0.0,False
 has_strap_ons,0.0,0.0,0.0,0.0,False
 launch_month,0.0,0.0,0.0,0.0,False
@@ -53,5 +53,5 @@ fairing_slenderness,0.0,0.0,0.0,0.0,False
 rocket_slenderness,0.0,0.0,0.0,0.0,False
 is_multi_payload,0.0,0.0,0.0,0.0,False
 is_multistage,0.0,0.0,0.0,0.0,False
-total_mass_kg,-0.0033,0.0008,-0.0036,-0.003,False
-org_prior_success_rate,-0.0034,0.0015,-0.004,-0.0029,False
+total_mass_kg,-0.002,0.0012,-0.0024,-0.0015,False
+org_prior_success_rate,-0.003,0.0025,-0.0039,-0.0021,False
