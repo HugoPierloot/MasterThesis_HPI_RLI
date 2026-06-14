@@ -17,7 +17,6 @@ from constants import Constant as C
 #    D. Physical specs ratios (rocket design complexity)
 #    E. Launch site
 #    F. Mission payload
-#    G. Era flags
 # ─────────────────────────────────────────────────────────────
 
 
